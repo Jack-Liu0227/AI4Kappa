@@ -31,14 +31,12 @@ def display_results(df):
             """
     return template
 def app():
-    sour_path = os.path.abspath('.')
-    root_dir = "root_dir"
-    root_dir_path = os.path.join(sour_path, root_dir)
-    model_path = os.path.join(sour_path, "model")
     st.title("AI4Kappa")
-    uploaded_files = st.sidebar.file_uploader("Please upload the cell CIF!!!",['cif'],accept_multiple_files=True)
-    if uploaded_files:
-        fo.process_and_save_uploaded_files(uploaded_files,root_dir_path)
+    sour_path = os.path.abspath('.')
+    root_dir_path = st.session_state.root_dir_path
+    model_path = os.path.join(sour_path, "model")
+
+    if st.session_state.uploaded_files:
         cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
         for i in range(len(cif_path_list)):
             cif_file_path = cif_path_list[i]
@@ -122,7 +120,7 @@ def app():
                 # 清理文件
                 fo.del_cif_file(root_dir_path)
     else:
-        st.title('Please upload the cell CIF file')
+        st.info('Please upload CIF files in the sidebar first.')
 
     with st.container():
         st.write("---")

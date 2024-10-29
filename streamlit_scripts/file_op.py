@@ -76,7 +76,6 @@ def get_crystalline_data(structure):
         from pymatgen.analysis.elasticity.elastic import ElasticTensor
         from pymatgen.analysis.elasticity import Deformation
         
-        print("Processing structure:", structure.composition.formula)
         
         # 获取基本属性
         data = {}
@@ -84,12 +83,9 @@ def get_crystalline_data(structure):
         data["Density (g cm-3)"] = structure.density
         data["Volume (Å3)"] = structure.volume
         data["the total atomic mass (amu)"] = sum([site.specie.atomic_mass for site in structure.sites])
-        
-        print("Basic properties extracted successfully")
         return data
         
     except Exception as e:
-        print(f"Error in get_crystalline_data: {str(e)}")
         return None
 
 def get_dir_crystalline_data(root_dir_path):
@@ -260,10 +256,4 @@ def del_temp_file(path):
         else:
             pass
 
-def get_N_cif(m,n,cif_path_dir,root_dir):
-    file_list=os.listdir(cif_path_dir)
-    for i in range(m-1,n):
-        cif_path=os.path.join(cif_path_dir,file_list[i])
-        shutil.copy2(cif_path,root_dir)
-    return file_list[i]
 

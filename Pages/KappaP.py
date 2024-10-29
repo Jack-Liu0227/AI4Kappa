@@ -45,13 +45,10 @@ def display_results(df):
 def app():
     st.title("KappaP")
     sour_path = os.path.abspath('.')
-    root_dir="root_dir"
-    root_dir_path=os.path.join(sour_path,root_dir)
-    model_path=os.path.join(sour_path,"model")
-    uploaded_files = st.sidebar.file_uploader("Please upload the CIF file!!!",['cif'],accept_multiple_files=True)
-    if uploaded_files:
-        fo.process_and_save_uploaded_files(uploaded_files, root_dir_path)
+    root_dir_path = st.session_state.root_dir_path
+    model_path = os.path.join(sour_path, "model")
 
+    if st.session_state.uploaded_files:
         cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
         for i in range(len(cif_path_list)):
             cif_file_path = cif_path_list[i]
@@ -132,7 +129,7 @@ def app():
                 fo.del_cif_file(root_dir_path)
                 fo.del_temp_file(sour_path)
     else:
-        st.title('Please upload CIF file')
+        st.info('Please upload CIF files in the sidebar first.')
     declaration = """<p style='font-size: 22px;'>We strive to have clear documentation and examples to help everyone with using KappaP on their own. 
         We will happily fix issues in the documentation and examples should you find any, 
         however, we will not be able to offer extensive user support and training, except for our collaborators.</p>"""
