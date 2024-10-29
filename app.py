@@ -24,6 +24,12 @@ if uploaded_files:
     st.session_state.uploaded_files = uploaded_files
     # 处理上传的文件
     fo.process_and_save_uploaded_files(uploaded_files, st.session_state.root_dir_path)
+    
+    # 添加文件展示widget
+    st.sidebar.write("---")
+    st.sidebar.write("Uploaded Files:")
+    for file in uploaded_files:
+        st.sidebar.success(f"✓ {file.name}")
 
 app = MultiPage()
 

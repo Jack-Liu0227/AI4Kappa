@@ -44,8 +44,11 @@ def app():
             - Calculates mechanical properties including:
                 - Bulk modulus
                 - Shear modulus
-                - Sound velocity
-                - Debye temperature
+                - Sound velocity of the transverse wave
+                - Sound velocity of the longitude wave
+                - Speed of sound
+                - Acoustic Debye temperature
+                - Grüneisen parameter
             """
         )
         
@@ -63,7 +66,10 @@ def app():
             - Predicts properties including:
                 - Bulk modulus
                 - Shear modulus
-                - Sound velocity
+                - Sound velocity of the transverse wave
+                - Sound velocity of the longitude wave
+                - Speed of sound
+                - Acoustic Debye temperature
                 - Grüneisen parameter
             """
         )

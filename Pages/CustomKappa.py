@@ -168,19 +168,25 @@ def app():
                 st.write("---")
                 st.subheader("Results")
                 
-                # 为每个文件显示结果
+                # 显示合并的数据框
+                st.write("Combined Results:")
+                st.dataframe(final_df)
+                
+                # 显示每个文件的晶体结构信息
+                st.write("---")
+                st.subheader("Crystal Structure Information")
+                
                 for file_name in file_params.keys():
-                    st.write(f"**Results for {file_name}:**")
-                    file_results = final_df.loc[file_name:file_name]
-                    st.dataframe(file_results)
-                    
-                    cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
-                    st.write("Crystal structure information:")
-                    st.write(cry_content, unsafe_allow_html=True)
-                    
-                    template = display_func(file_results)
-                    st.markdown(template, unsafe_allow_html=True)
-                    st.write("---")
+                    with st.expander(f"Structure details for {file_name}"):
+                        cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
+                        st.write(cry_content, unsafe_allow_html=True)
+                        
+                        file_results = final_df.loc[file_name:file_name]
+                        if method == "KappaP":
+                            template = display_results_kappap(file_results)
+                        else:
+                            template = display_results_ai4kappa(file_results)
+                        st.markdown(template, unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
