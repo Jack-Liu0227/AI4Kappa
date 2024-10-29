@@ -142,7 +142,7 @@ def app():
                     finally:
                         cm.clean_model(sour_path)
 
-                # 处理数据
+                # 数据处理
                 all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
                 whole_info_df = pd.merge(all_cry_df, pre_df, left_index=True, right_index=True)
 
@@ -154,14 +154,45 @@ def app():
 
                 # 根据选择的方法进行计算
                 Debye_df = calk.cal_Debye_T(whole_info_df)
-                gamma_df = calk.cal_gamma(Debye_df)
                 
                 if method == "KappaP":
-                    A_df = calk.cal_A(gamma_df, 1)
-                    final_df = calk.cal_K_Slack(A_df)
+                    # 对每个文件分别处理
+                    for file_name in file_params.keys():
+                        file_mask = Debye_df.index == file_name
+                        file_data = Debye_df[file_mask]
+                        
+                        # 如果有自定义的 Grüneisen parameter，使用它
+                        if 'Grüneisen parameter' in file_params[file_name]:
+                            gamma = file_params[file_name]['Grüneisen parameter']
+                            file_data['Grüneisen parameter'] = gamma
+                        else:
+                            file_data = calk.cal_gamma(file_data)
+                            
+                        A_df = calk.cal_A(file_data, 1)
+                        if file_name == list(file_params.keys())[0]:
+                            final_df = calk.cal_K_Slack(A_df)
+                        else:
+                            final_df = pd.concat([final_df, calk.cal_K_Slack(A_df)])
+                            
                     display_func = display_results_kappap
                 else:  # AI4Kappa
-                    final_df = calk.by_MTP(gamma_df)
+                    # 对每个文件分别处理
+                    for file_name in file_params.keys():
+                        file_mask = Debye_df.index == file_name
+                        file_data = Debye_df[file_mask]
+                        
+                        # 如果有自定义的 Grüneisen parameter，使用它
+                        if 'Grüneisen parameter' in file_params[file_name]:
+                            gamma = file_params[file_name]['Grüneisen parameter']
+                            file_data['Grüneisen parameter'] = gamma
+                        else:
+                            file_data = calk.cal_gamma(file_data)
+                            
+                        if file_name == list(file_params.keys())[0]:
+                            final_df = calk.by_MTP(file_data)
+                        else:
+                            final_df = pd.concat([final_df, calk.by_MTP(file_data)])
+                            
                     display_func = display_results_ai4kappa
 
                 # 显示结果

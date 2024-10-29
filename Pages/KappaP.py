@@ -94,7 +94,7 @@ def app():
                     
                 Debye_df = calk.cal_Debye_T(whole_info_df)
                 gamma_df = calk.cal_gamma(Debye_df)
-                A_df=calk.cal_A(gamma_df,1)
+                A_df = calk.cal_A(gamma_df, 1)
                 K_slack_df = calk.cal_K_Slack(A_df)
                 ls = ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)",
                       "Bulk modulus (GPa)", "Shear modulus (GPa)", "Sound velocity of the transverse wave (m s-1)",

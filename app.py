@@ -25,11 +25,16 @@ if uploaded_files:
     # 处理上传的文件
     fo.process_and_save_uploaded_files(uploaded_files, st.session_state.root_dir_path)
     
-    # 添加文件展示widget
-    st.sidebar.write("---")
-    st.sidebar.write("Uploaded Files:")
-    for file in uploaded_files:
-        st.sidebar.success(f"✓ {file.name}")
+    # 在主区域右上角显示上传文件信息
+    with st.sidebar.expander("Uploaded Files", expanded=True):
+        # 使用列表格式显示文件名
+        for i, file in enumerate(uploaded_files, 1):
+            st.write(f"{i}. {file.name} ✓")
+    
+    # 在主区域显示上传成功的提示
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        st.success(f"{len(uploaded_files)} files uploaded successfully!")
 
 app = MultiPage()
 

@@ -29,23 +29,42 @@ def cal_Debye_T(df):
     df[Va] = Vs * 1000
     df[Debye] = h / k * np.power(3 / (4 * math.pi * np.array(df[V])), 1 / 3) * np.array(df[Va])*math.pow(10,10)
     return df
-def cal_gamma(df):
-    gamma = "Grüneisen parameter"
-    Vp = "Poisson ratio"
-    L="Sound velocity of the longitude wave (m s-1)"
-    T="Sound velocity of the transverse wave (m s-1)"
-    a=df[L]/df[T]
-    df[Vp] = (pow(a, 2) - 2 ) / (2*pow(a, 2) - 2)
-    df[gamma] = 3 * (1 + df[Vp]) / (2 * (2 - 3 * df[Vp]))
-    return df
 
-def cal_A(df,n):
+def cal_gamma(df, custom_gamma=None):
+    """
+    计算 Grüneisen parameter 和泊松比
+    如果提供了 custom_gamma，则直接使用该值
+    """
+    gamma_df = df.copy()
+    
+    if custom_gamma is not None:
+        # 如果提供了自定义值，直接使用
+        gamma_df['Grüneisen parameter'] = custom_gamma
+    else:
+        # 否则计算 Grüneisen parameter 和泊松比
+        L = gamma_df['Sound velocity of the longitude wave (m s-1)']
+        T = gamma_df['Sound velocity of the transverse wave (m s-1)']
+        a = L / T
+        gamma_df['Poisson ratio'] = (pow(a, 2) - 2) / (2*pow(a, 2) - 2)
+        gamma_df['Grüneisen parameter'] = 3 * (1 + gamma_df['Poisson ratio']) / (2 * (2 - 3 * gamma_df['Poisson ratio']))
+    
+    return gamma_df
+
+def cal_A(df, n, custom_gamma=None):
+    """
+    计算A值，可选使用自定义的 Grüneisen parameter
+    """
     gamma = "Grüneisen parameter"
     A="A"
-    if n==1:
-        df[A]=2.43e-8/(1-0.514/df[gamma]+0.228/pow(df[gamma],2))
+    if custom_gamma is not None:
+        gamma_value = custom_gamma
     else:
-        df[A] = 1 / (1 +1 / df[gamma] + 8.3e5 / pow(df[gamma], 2.4))
+        gamma_value = df[gamma]
+    
+    if n==1:
+        df[A]=2.43e-8/(1-0.514/gamma_value+0.228/pow(gamma_value,2))
+    else:
+        df[A] = 1 / (1 +1 / gamma_value + 8.3e5 / pow(gamma_value, 2.4))
     return df
 
 def cal_K_Slack(df):
@@ -61,38 +80,33 @@ def cal_K_Slack(df):
     print(df)
     return(df)
 
-
 def by_MTP(df):
-    '''
-
-    :param df: dataframe包括["Bulk modulus", "Grüneisen parameter", "Shear modulus", "Volume", "N","Density"]
-    :return: 更新后的dataframe
-    '''
-    G="Shear modulus (GPa)"
-    Va="Speed of sound (m s-1)"
-    V="Volume (Å3)"
-    N="Number of Atoms"
-    T=300
-    K_form="Kappa_cal (W m-1 K-1)"
-    gamma="Grüneisen parameter"
-    try:
-        # 分子项
-        numerator=df[G]*df[Va]*pow(df[V],1/3)
-        # 分母项
-        denominator = df[N] * T
-        coe_formula=df[gamma].apply(lambda x: math.exp(-x))
-        K_formula=numerator/denominator*coe_formula/10
-        ato_number = df[N]
-        df[N]=ato_number
-        df["T"] = 300
-        # df[KL] = df[KL].apply(lambda x: '%.2f' % x)
-        df[K_form] = K_formula
-        # df[K_form] = df[K_form].apply(lambda x: '%.2f' % x)
-        # format = lambda x: '%.2f' % x
-        # df = df.map(format)
-    except Exception as e:
-        st.write(e)
-    return df
+    """
+    使用MTP方法计算热导率
+    """
+    import numpy as np
+    K_df = df.copy()
+    
+    # 确保所有需要的列都存在
+    required_columns = ['Grüneisen parameter', 'Shear modulus (GPa)', 
+                       'Volume (Å3)', 'Number of Atoms', 'Speed of sound (m s-1)']
+    for col in required_columns:
+        if col not in K_df.columns:
+            raise ValueError(f"Missing required column: {col}")
+    
+    # 获取计算所需的值
+    gamma = K_df['Grüneisen parameter']
+    G = K_df['Shear modulus (GPa)'] * 1e9  # 转换为Pa
+    V = K_df['Volume (Å3)'] * 1e-30  # 转换为m³
+    N = K_df['Number of Atoms']
+    vs = K_df['Speed of sound (m s-1)']
+    T = 300  # 温度设为300K
+    
+    # 计算热导率 (W/mK)
+    kappa = G * vs * (V**(1/3)) / (N * T) * np.exp(-gamma)
+    K_df['Kappa_cal (W m-1 K-1)'] = kappa
+    
+    return K_df
 
 if __name__=="__main__":
     pass
