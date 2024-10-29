@@ -50,14 +50,31 @@ def get_model_path(model_path):
 
 def get_pre_dataframe(results_csv_path, model_name):
     """
-    获取预测结果数据框
+    获取预测结果数据框，并将第三列转换为10的幂次方
     """
     import pandas as pd
-    test_results = pd.read_csv(results_csv_path, header=None)
-    test_results.columns = ["ID", "RAND", model_name]
-    test_results_p = test_results.iloc[:, [0, 2]]
-    test_results_p.set_index("ID", inplace=True)
-    return test_results_p
+    import numpy as np
+    
+    try:
+        # 读取CSV文件
+        test_results = pd.read_csv(results_csv_path, header=None)
+        test_results.columns = ["ID", "RAND", model_name]
+        
+        # 将第三列转换为10的幂次方
+        test_results[model_name] = np.power(10, test_results[model_name])
+        
+        # 选择需要的列并设置索引
+        test_results_p = test_results.iloc[:, [0, 2]]
+        test_results_p.set_index("ID", inplace=True)
+        
+        print(f"Processed data for {model_name}:")
+        print(test_results_p.head())
+        
+        return test_results_p
+        
+    except Exception as e:
+        print(f"Error in get_pre_dataframe: {str(e)}")
+        return pd.DataFrame()
 
 if __name__=="__main__":
     path=r"D:\pycharm\Thermo_Conductivity_APP\model"
