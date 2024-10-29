@@ -4,9 +4,18 @@ import os
 import warnings
 import glob
 import io
+import sys
+
+# 添加父目录到系统路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
 import streamlit_scripts.file_op as fo
 import streamlit_scripts.chang_model as cm
 import streamlit_scripts.calculate_K as calk
+import predict  # 现在应该可以正确导入了
 
 import streamlit as st
 import pandas as pd
@@ -60,18 +69,20 @@ def app():
             cry_content = fo.get_crystalline_content(first_cif_path)
             results_csv_path = os.path.join(sour_path, "test_results.csv")
             model_path_list, model_name_list = cm.get_model_path(model_path)
-            cm.copy_model(model_path_list[0], sour_path)
-            import predict
-            predict.main(root_dir_path)
-            pre_df = cm.get_pre_dataframe(results_csv_path, model_name_list[0])
+            try:
+                cm.copy_model(model_path_list[0], sour_path)
+                predict.main(root_dir_path)
+                pre_df = cm.get_pre_dataframe(results_csv_path, model_name_list[0])
+            finally:
+                cm.clean_model(sour_path)
             for model_path, model_name in zip(model_path_list[1:], model_name_list[1:]):
-                cm.copy_model(model_path, sour_path)
                 try:
+                    cm.copy_model(model_path, sour_path)
                     predict.main(root_dir_path)
                     pre_df1 = cm.get_pre_dataframe(results_csv_path, model_name)
                     pre_df = pd.merge(pre_df, pre_df1, left_index=True, right_index=True)
-                except Exception as e:
-                    st.write(e)
+                finally:
+                    cm.clean_model(sour_path)
             try:
                 st.write("---")
                 all_cry_df = fo.get_dir_crystalline_data(root_dir_path)

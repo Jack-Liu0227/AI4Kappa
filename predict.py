@@ -3,7 +3,6 @@ import os
 import shutil
 import sys
 import time
-from email.policy import strict
 
 import numpy as np
 import torch
@@ -15,11 +14,14 @@ from torch.utils.data import DataLoader
 from cgcnn.data import CIFData
 from cgcnn.data import collate_pool
 from cgcnn.model import CrystalGraphConvNet
-source_path=os.path.abspath(".")
-model_path=os.path.join(source_path,"pre-trained.pth.tar")
+
+# 初始化全局变量
+source_path = os.path.abspath(".")
+model_path = os.path.join(source_path, "pre-trained.pth.tar")
+model_args = None  # 初始化全局变量
+best_mae_error = None  # 初始化全局变量
+
 parser = argparse.ArgumentParser(description='Crystal gated neural networks')
-# parser.add_argument('modelpath', help='path to the trained model.')
-# parser.add_argument('cifpath', help='path to the directory of CIF files.')
 parser.add_argument('-b', '--batch-size', default=256, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
@@ -30,80 +32,73 @@ parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
 
 args = parser.parse_args(sys.argv[1:])
-
-# model_path=r"/mount/src/thermo_conductivity_app/pre-trained.pth.tar"
-
-if os.path.isfile(model_path):
-    print("=> loading model params '{}'".format(model_path))
-    model_checkpoint = torch.load(model_path,
-                                  map_location=lambda storage, loc: storage)
-    model_args = argparse.Namespace(**model_checkpoint['args'])
-    print("=> loaded model params '{}'".format(model_path))
-else:
-    print("=> no model params found at '{}'".format(model_path))
-
 args.cuda = not args.disable_cuda and torch.cuda.is_available()
 
-if model_args.task == 'regression':
-    best_mae_error = 1e10
-else:
-    best_mae_error = 0.
-
+def initialize_model_args():
+    """初始化模型参数"""
+    global model_args, best_mae_error
+    
+    if os.path.isfile(model_path):
+        print("=> loading model params '{}'".format(model_path))
+        model_checkpoint = torch.load(model_path,
+                                    map_location=lambda storage, loc: storage)
+        model_args = argparse.Namespace(**model_checkpoint['args'])
+        print("=> loaded model params '{}'".format(model_path))
+        
+        # 设置 best_mae_error
+        best_mae_error = 1e10 if model_args.task == 'regression' else 0
+        return True
+    else:
+        print("=> no model params found at '{}'".format(model_path))
+        return False
 
 def main(root_dir_path):
     global args, model_args, best_mae_error
-    # cif_path=r"/mount/src/thermo_conductivity_app/root_dir"
-    cif_path=root_dir_path
-    # load dat
+    
+    # 确保模型参数已初始化
+    if not model_args:
+        if not initialize_model_args():
+            return
+    
+    # load data
+    cif_path = root_dir_path
     dataset = CIFData(cif_path)
     collate_fn = collate_pool
     test_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True,
-                             num_workers=args.workers, collate_fn=collate_fn,
-                             pin_memory=args.cuda)
+                           num_workers=args.workers, collate_fn=collate_fn,
+                           pin_memory=args.cuda)
 
     # build model
     structures, _, _ = dataset[0]
     orig_atom_fea_len = structures[0].shape[-1]
     nbr_fea_len = structures[1].shape[-1]
     model = CrystalGraphConvNet(orig_atom_fea_len, nbr_fea_len,
-                                atom_fea_len=model_args.atom_fea_len,
-                                n_conv=model_args.n_conv,
-                                h_fea_len=model_args.h_fea_len,
-                                n_h=model_args.n_h,
-                                classification=True if model_args.task ==
-                                'classification' else False)
+                               atom_fea_len=model_args.atom_fea_len,
+                               n_conv=model_args.n_conv,
+                               h_fea_len=model_args.h_fea_len,
+                               n_h=model_args.n_h,
+                               classification=True if model_args.task ==
+                               'classification' else False)
     if args.cuda:
         model.cuda()
 
-    # define loss func and optimizer
-    if model_args.task == 'classification':
-        criterion = nn.NLLLoss()
-    else:
-        criterion = nn.MSELoss()
-    # if args.optim == 'SGD':
-    #     optimizer = optim.SGD(model.parameters(), args.lr,
-    #                           momentum=args.momentum,
-    #                           weight_decay=args.weight_decay)
-    # elif args.optim == 'Adam':
-    #     optimizer = optim.Adam(model.parameters(), args.lr,
-    #                            weight_decay=args.weight_decay)
-    # else:
-    #     raise NameError('Only SGD or Adam is allowed as --optim')
-
+    # define loss func
+    criterion = nn.NLLLoss() if model_args.task == 'classification' else nn.MSELoss()
     normalizer = Normalizer(torch.zeros(3))
 
-    # optionally resume from a checkpoint
+    # load checkpoint
     if os.path.isfile(model_path):
         print("=> loading model '{}'".format(model_path))
         checkpoint = torch.load(model_path,
-                                map_location=lambda storage, loc: storage)
-        model.load_state_dict(checkpoint['state_dict'],strict=False)
+                              map_location=lambda storage, loc: storage)
+        model.load_state_dict(checkpoint['state_dict'], strict=False)
         normalizer.load_state_dict(checkpoint['normalizer'])
         print("=> loaded model '{}' (epoch {}, validation {})"
               .format(model_path, checkpoint['epoch'],
-                      checkpoint['best_mae_error']))
+                     checkpoint['best_mae_error']))
     else:
         print("=> no model found at '{}'".format(model_path))
+        return
 
     validate(test_loader, model, criterion, normalizer, test=True)
 

@@ -5,48 +5,59 @@ import shutil
 import pandas as pd
 import streamlit as st
 import numpy as np
-def copy_all_model(path,new_path):
-    model_list=os.scandir(path)
-    new_model_path=os.path.join(new_path,"pre-trained.pth.tar")
-    for model in model_list:
-        model_path=os.path.join(path,model.name)
-        shutil.copy(model_path,new_model_path)
 
-def get_model_path(path):
+def copy_model(model_path, sour_path):
     """
-
-    :param path:
-    :return: 目标路径下的所有模型的绝对路径model_path_list,以及模型名字列表
+    复制模型文件到目标路径
     """
-    model_list = os.scandir(path)
-    model_path_list = []
-    model_name = []
-    # new_model_path=os.path.join(new_path,"pre-trained.pth.tar")
-    for model in model_list:
-        model_path = os.path.join(path, model.name)
+    try:
+        import shutil
+        import os
+        target_path = os.path.join(sour_path, "pre-trained.pth.tar")
+        if os.path.exists(model_path):
+            shutil.copy2(model_path, target_path)
+            print(f"Model copied to {target_path}")
+            return True
+    except Exception as e:
+        print(f"Error copying model: {e}")
+        return False
 
-        model_name.append(model.name.split("-")[0])
-        model_path_list.append(model_path)
-        # shutil.copy(model_path,new_model_path)
-    return model_path_list, model_name
+def clean_model(sour_path):
+    """
+    删除使用过的预训练模型文件
+    """
+    try:
+        import os
+        target_path = os.path.join(sour_path, "pre-trained.pth.tar")
+        if os.path.exists(target_path):
+            os.remove(target_path)
+            print(f"Removed {target_path}")
+    except Exception as e:
+        print(f"Error removing model: {e}")
 
+def get_model_path(model_path):
+    """
+    获取模型路径和名称列表
+    """
+    import os
+    import glob
+    model_path_list = glob.glob(os.path.join(model_path, '*-pre-trained.pth.tar'))
+    model_name_list = []
+    for model_path in model_path_list:
+        model_name = os.path.basename(model_path).split('-pre-trained.pth.tar')[0]
+        model_name_list.append(model_name)
+    return model_path_list, model_name_list
 
-def copy_model(path,new_path):
-    new_model_path=os.path.join(new_path,"pre-trained.pth.tar")
-    shutil.copy(path,new_model_path)
-
-
-
-def get_pre_dataframe(path,model_name):
-    df=pd.read_csv(path,header=None)
-    df.columns=["ID","RAND",model_name]
-    pre_df=df.iloc[:,2]
-    pre_df.index=list(df["ID"].apply(lambda x:str(x)))
-    pre_df=np.power(10,pre_df)
-    # st.dataframe(pre_df)
-    return pre_df
-
-
+def get_pre_dataframe(results_csv_path, model_name):
+    """
+    获取预测结果数据框
+    """
+    import pandas as pd
+    test_results = pd.read_csv(results_csv_path, header=None)
+    test_results.columns = ["ID", "RAND", model_name]
+    test_results_p = test_results.iloc[:, [0, 2]]
+    test_results_p.set_index("ID", inplace=True)
+    return test_results_p
 
 if __name__=="__main__":
     path=r"D:\pycharm\Thermo_Conductivity_APP\model"
