@@ -256,4 +256,25 @@ def del_temp_file(path):
         else:
             pass
 
+def clean_root_dir(root_dir_path):
+    """
+    清理root_dir目录，只保留atom_init.json文件
+    """
+    import os
+    import glob
+    
+    try:
+        # 获取目录下所有文件
+        files = glob.glob(os.path.join(root_dir_path, '*'))
+        for file_path in files:
+            # 如果不是atom_init.json文件，则删除
+            if os.path.basename(file_path) != 'atom_init.json':
+                try:
+                    os.remove(file_path)
+                    print(f"Removed: {file_path}")
+                except Exception as e:
+                    print(f"Error removing {file_path}: {e}")
+    except Exception as e:
+        print(f"Error cleaning root_dir: {e}")
+
 

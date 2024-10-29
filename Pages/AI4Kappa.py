@@ -123,7 +123,6 @@ def app():
         st.info('Please upload CIF files in the sidebar first.')
 
     with st.container():
-        st.write("---")
         declaration = """<p style='font-size: 22px;'>We strive to have clear documentation and examples to help everyone with using Al4Kappa on their own. 
                         We will happily fix issues in the documentation and examples should you find any, 
                         however, we will not be able to offer extensive user support and training, except for our collaborators.</p>"""
