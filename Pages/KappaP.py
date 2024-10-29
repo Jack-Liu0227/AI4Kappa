@@ -137,14 +137,3 @@ def app():
         We will happily fix issues in the documentation and examples should you find any, 
         however, we will not be able to offer extensive user support and training, except for our collaborators.</p>"""
     st.markdown(declaration, unsafe_allow_html=True)
-    contact_button_clicked = st.button('Contact Us')
-    if contact_button_clicked:
-        contact_info = """
-            <p style='font-size: 18px;'>
-            If you have any questions or need further assistance, please contact us at:<br>
-            Email: zhibin.gao@xjtu.edu.cn<br>
-            Email: liu_yujie@stu.xjtu.edu.cn<br>
-            Or visit our website:<a href="https://gr.xjtu.edu.cn/web/zhibin.gao">https://gr.xjtu.edu.cn/web/zhibin.gao</a>
-            </p>
-        """
-        st.markdown(contact_info, unsafe_allow_html=True)

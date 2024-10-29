@@ -51,9 +51,11 @@ def get_model_path(model_path):
 def get_pre_dataframe(results_csv_path, model_name):
     """
     获取预测结果数据框，并将第三列转换为10的幂次方
+    读取后删除csv文件
     """
     import pandas as pd
     import numpy as np
+    import os
     
     try:
         # 读取CSV文件
@@ -69,6 +71,14 @@ def get_pre_dataframe(results_csv_path, model_name):
         
         print(f"Processed data for {model_name}:")
         print(test_results_p.head())
+        
+        # 删除CSV文件
+        try:
+            if os.path.exists(results_csv_path):
+                os.remove(results_csv_path)
+                print(f"Removed {results_csv_path}")
+        except Exception as e:
+            print(f"Error removing {results_csv_path}: {e}")
         
         return test_results_p
         
