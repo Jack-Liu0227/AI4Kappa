@@ -147,16 +147,42 @@ def get_crystalline_content(cif_path):
     """获取晶体的内容"""
     try:
         from pymatgen.core import Structure
+        import re
+        
+        # 读取CIF文件原始内容
+        with open(cif_path, 'r') as f:
+            cif_content = f.read()
+            
+        # 使用正则表达式提取晶胞参数
+        cell_params = {}
+        params = [
+            '_cell_length_a',
+            '_cell_length_b',
+            '_cell_length_c',
+            '_cell_angle_alpha',
+            '_cell_angle_beta',
+            '_cell_angle_gamma'
+        ]
+        
+        for param in params:
+            match = re.search(f"{param}\s+(\d+\.?\d*)", cif_content)
+            if match:
+                cell_params[param] = float(match.group(1))
+                
+        # 使用pymatgen获取其他信息
         structure = Structure.from_file(cif_path)
+        spacegroup_info = structure.get_space_group_info()
         
         content = f"""
         <p style='font-size: 18px;'>
         Formula: {structure.composition.formula}<br>
-        Space group: {structure.get_space_group_info()[0]}<br>
-        Crystal System: {structure.get_space_group_info()[1]}<br>
-        Volume: {structure.volume:.2f} Å³<br>
-        Density: {structure.density:.2f} g/cm³<br>
-        Number of atoms: {len(structure.sites)}<br>
+        Space group: {spacegroup_info[0]} ({spacegroup_info[1]})<br>
+        _cell_length_a     {cell_params.get('_cell_length_a', 'N/A'):.8f}<br>
+        _cell_length_b     {cell_params.get('_cell_length_b', 'N/A'):.8f}<br>
+        _cell_length_c     {cell_params.get('_cell_length_c', 'N/A'):.8f}<br>
+        _cell_angle_alpha  {cell_params.get('_cell_angle_alpha', 'N/A'):.8f}<br>
+        _cell_angle_beta   {cell_params.get('_cell_angle_beta', 'N/A'):.8f}<br>
+        _cell_angle_gamma  {cell_params.get('_cell_angle_gamma', 'N/A'):.8f}<br>
         </p>
         """
         print(f"Successfully extracted content from {os.path.basename(cif_path)}")
