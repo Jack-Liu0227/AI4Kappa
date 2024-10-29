@@ -41,14 +41,23 @@ def app():
         st.write(
             """
             - Requires crystal structure information (CIF file)
-            - Calculates mechanical properties including:
-                - Bulk modulus
-                - Shear modulus
-                - Sound velocity of the transverse wave
-                - Sound velocity of the longitude wave
-                - Speed of sound
-                - Acoustic Debye temperature
-                - Grüneisen parameter
+            - Calculates or predicts properties including:
+                - Basic structural properties:
+                    - Number of atoms
+                    - Density
+                    - Volume
+                    - Total atomic mass
+                - Mechanical properties:
+                    - Bulk modulus
+                    - Shear modulus
+                    - Sound velocity of the transverse wave
+                    - Sound velocity of the longitude wave
+                    - Speed of sound
+                    - Poisson ratio
+                - Thermal properties:
+                    - Acoustic Debye temperature
+                    - Grüneisen parameter
+                    - Lattice thermal conductivity
             """
         )
         
@@ -56,21 +65,45 @@ def app():
         st.subheader("AI4Kappa Method")
         st.write(
             """
-            AI4Kappa employs machine learning for thermal conductivity prediction:
+            AI4Kappa employs machine learning for lattice thermal conductivity prediction:
             """
         )
         st.latex(r"\kappa_L = \frac{G v_s V^{1/3}}{N T} \cdot e^{-\gamma}")
         st.write(
             """
             - Requires crystal structure input (CIF file)
-            - Predicts properties including:
+            - Calculates or predicts properties including:
+                - Basic structural properties:
+                    - Number of atoms
+                    - Density
+                    - Volume
+                    - Total atomic mass
+                - Mechanical properties:
+                    - Bulk modulus
+                    - Shear modulus
+                    - Sound velocity of the transverse wave
+                    - Sound velocity of the longitude wave
+                    - Speed of sound
+                    - Poisson ratio
+                - Thermal properties:
+                    - Acoustic Debye temperature
+                    - Grüneisen parameter
+                    - Lattice thermal conductivity
+            """
+        )
+
+        # Custom Kappa Calculator
+        st.subheader("Custom Kappa Calculator")
+        st.write(
+            """
+            A flexible tool that allows users to:
+            - Choose between KappaP and AI4Kappa methods
+            - Input custom values for:
                 - Bulk modulus
                 - Shear modulus
-                - Sound velocity of the transverse wave
-                - Sound velocity of the longitude wave
-                - Speed of sound
-                - Acoustic Debye temperature
                 - Grüneisen parameter
+            - Calculate lattice thermal conductivity using user-defined parameters
+            - Process multiple structures (up to 5) simultaneously
             """
         )
 

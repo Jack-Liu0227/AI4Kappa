@@ -36,16 +36,16 @@ def cal_gamma(df, custom_gamma=None):
     如果提供了 custom_gamma，则直接使用该值
     """
     gamma_df = df.copy()
+    L = gamma_df['Sound velocity of the longitude wave (m s-1)']
+    T = gamma_df['Sound velocity of the transverse wave (m s-1)']
+    a = L / T
+    gamma_df['Poisson ratio'] = (pow(a, 2) - 2) / (2*pow(a, 2) - 2)
     
     if custom_gamma is not None:
         # 如果提供了自定义值，直接使用
         gamma_df['Grüneisen parameter'] = custom_gamma
+        
     else:
-        # 否则计算 Grüneisen parameter 和泊松比
-        L = gamma_df['Sound velocity of the longitude wave (m s-1)']
-        T = gamma_df['Sound velocity of the transverse wave (m s-1)']
-        a = L / T
-        gamma_df['Poisson ratio'] = (pow(a, 2) - 2) / (2*pow(a, 2) - 2)
         gamma_df['Grüneisen parameter'] = 3 * (1 + gamma_df['Poisson ratio']) / (2 * (2 - 3 * gamma_df['Poisson ratio']))
     
     return gamma_df
@@ -94,16 +94,21 @@ def by_MTP(df):
         if col not in K_df.columns:
             raise ValueError(f"Missing required column: {col}")
     
-    # 获取计算所需的值
-    gamma = K_df['Grüneisen parameter']
-    G = K_df['Shear modulus (GPa)'] * 1e9  # 转换为Pa
-    V = K_df['Volume (Å3)'] * 1e-30  # 转换为m³
-    N = K_df['Number of Atoms']
-    vs = K_df['Speed of sound (m s-1)']
+    # 获取计算所需的值并转换为numpy数组
+    gamma = K_df['Grüneisen parameter'].astype(float).values
+    G = K_df['Shear modulus (GPa)'].astype(float).values * 1e9  # 转换为Pa
+    V = K_df['Volume (Å3)'].astype(float).values * 1e-30  # 转换为m³
+    N = K_df['Number of Atoms'].astype(float).values
+    vs = K_df['Speed of sound (m s-1)'].astype(float).values
     T = 300  # 温度设为300K
     
     # 计算热导率 (W/mK)
-    kappa = G * vs * (V**(1/3)) / (N * T) * np.exp(-gamma)
+    V_term = np.power(V, 1/3)
+    exp_term = np.exp(-gamma)
+    kappa = G * vs * V_term / (N * T) * exp_term
+    
+    # 确保结果是有限值
+    kappa = np.where(np.isfinite(kappa), kappa, 0)
     K_df['Kappa_cal (W m-1 K-1)'] = kappa
     
     return K_df

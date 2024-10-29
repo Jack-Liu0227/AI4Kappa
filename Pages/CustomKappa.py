@@ -49,6 +49,18 @@ def display_results_ai4kappa(df):
             The calculated lattice thermal conductivity is {df["Kappa_cal (W m-1 K-1)"].iloc[0]} W/(m·K).<br>
             """
     return template
+def display_columns(method):
+    if method == "KappaP":
+        ls = ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)",
+              "Bulk modulus (GPa)", "Shear modulus (GPa)", "Sound velocity of the transverse wave (m s-1)",
+              "Sound velocity of the longitude wave (m s-1)", "Speed of sound (m s-1)",
+              "Poisson ratio", "Grüneisen parameter", "Acoustic Debye Temperature (K)", "Kappa_Slack (W m-1 K-1)"]
+    else:
+        ls = ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)",
+              "Bulk modulus (GPa)", "Shear modulus (GPa)", "Sound velocity of the transverse wave (m s-1)",
+              "Sound velocity of the longitude wave (m s-1)", "Speed of sound (m s-1)",
+              "Poisson ratio", "Grüneisen parameter", "Acoustic Debye Temperature (K)", "Kappa_cal (W m-1 K-1)"]
+    return ls
 
 def app():
     st.title("Custom Kappa Calculator")
@@ -118,112 +130,68 @@ def app():
         # 计算按钮
         calculate = st.button("Calculate")
         if calculate:
-            try:
-                # 创建id_prop.csv
-                cif_path_list, cif_name_list = fo.create_id_prop(root_dir_path)
-                
-                # 获取预测结果
-                results_csv_path = os.path.join(sour_path, "test_results.csv")
-                model_path_list, model_name_list = cm.get_model_path(model_path)
-                
-                try:
-                    cm.copy_model(model_path_list[0], sour_path)
-                    predict.main(root_dir_path)
-                    pre_df = cm.get_pre_dataframe(results_csv_path, model_name_list[0])
-                finally:
-                    cm.clean_model(sour_path)
 
-                for model_path, model_name in zip(model_path_list[1:], model_name_list[1:]):
-                    try:
-                        cm.copy_model(model_path, sour_path)
-                        predict.main(root_dir_path)
-                        pre_df1 = cm.get_pre_dataframe(results_csv_path, model_name)
-                        pre_df = pd.merge(pre_df, pre_df1, left_index=True, right_index=True)
-                    finally:
-                        cm.clean_model(sour_path)
+            # 数据处理
+            all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
+            whole_info_df = pd.DataFrame(index=all_cry_df.index, columns=["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", 
+                              "the total atomic mass (amu)", "Bulk modulus (GPa)", 
+                              "Shear modulus (GPat", "Grüneisen parameter"])
+            
+            # 复制基本属性
+            for col in ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)"]:
+                if col in all_cry_df.columns:
+                    whole_info_df[col] = all_cry_df[col]
+ 
 
-                # 数据处理
-                all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
-                whole_info_df = pd.merge(all_cry_df, pre_df, left_index=True, right_index=True)
-
-                # 应用用户自定义参数
-                for file_name, params in file_params.items():
-                    file_mask = whole_info_df.index == file_name
+            # 应用用户自定义参数
+            for file_name, params in file_params.items():
+                if file_name in whole_info_df.index:
                     for param, value in params.items():
-                        whole_info_df.loc[file_mask, param] = value
+                        whole_info_df.loc[file_name, param] = value
 
+            custom_gamma=whole_info_df["Grüneisen parameter"]
+            Debye_df = calk.cal_Debye_T(whole_info_df)
+
+            if method == "KappaP":
                 # 根据选择的方法进行计算
-                Debye_df = calk.cal_Debye_T(whole_info_df)
                 
-                if method == "KappaP":
-                    # 对每个文件分别处理
-                    for file_name in file_params.keys():
-                        file_mask = Debye_df.index == file_name
-                        file_data = Debye_df[file_mask]
-                        
-                        # 如果有自定义的 Grüneisen parameter，使用它
-                        if 'Grüneisen parameter' in file_params[file_name]:
-                            gamma = file_params[file_name]['Grüneisen parameter']
-                            file_data['Grüneisen parameter'] = gamma
-                        else:
-                            file_data = calk.cal_gamma(file_data)
-                            
-                        A_df = calk.cal_A(file_data, 1)
-                        if file_name == list(file_params.keys())[0]:
-                            final_df = calk.cal_K_Slack(A_df)
-                        else:
-                            final_df = pd.concat([final_df, calk.cal_K_Slack(A_df)])
-                            
-                    display_func = display_results_kappap
-                else:  # AI4Kappa
-                    # 对每个文件分别处理
-                    for file_name in file_params.keys():
-                        file_mask = Debye_df.index == file_name
-                        file_data = Debye_df[file_mask]
-                        
-                        # 如果有自定义的 Grüneisen parameter，使用它
-                        if 'Grüneisen parameter' in file_params[file_name]:
-                            gamma = file_params[file_name]['Grüneisen parameter']
-                            file_data['Grüneisen parameter'] = gamma
-                        else:
-                            file_data = calk.cal_gamma(file_data)
-                            
-                        if file_name == list(file_params.keys())[0]:
-                            final_df = calk.by_MTP(file_data)
-                        else:
-                            final_df = pd.concat([final_df, calk.by_MTP(file_data)])
-                            
-                    display_func = display_results_ai4kappa
+                  # 展示Debye温度计算后的数据
+                gamma_df = calk.cal_gamma(Debye_df,custom_gamma)
 
-                # 显示结果
-                st.write("---")
-                st.subheader("Results")
-                
-                # 显示合并的数据框
-                st.write("Combined Results:")
-                st.dataframe(final_df)
-                
-                # 显示每个文件的晶体结构信息
-                st.write("---")
-                st.subheader("Crystal Structure Information")
-                
-                for file_name in file_params.keys():
-                    with st.expander(f"Structure details for {file_name}"):
-                        cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
-                        st.write(cry_content, unsafe_allow_html=True)
-                        
-                        file_results = final_df.loc[file_name:file_name]
-                        if method == "KappaP":
-                            template = display_results_kappap(file_results)
-                        else:
-                            template = display_results_ai4kappa(file_results)
-                        st.markdown(template, unsafe_allow_html=True)
+                A_df = calk.cal_A(gamma_df, 1,custom_gamma)
 
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-            finally:
-                fo.del_cif_file(root_dir_path)
-                fo.del_temp_file(sour_path)
+                final_df = calk.cal_K_Slack(A_df)
+                display_func = display_results_kappap
+            else:  # AI4Kappa
+                gamma_df = calk.cal_gamma(Debye_df,custom_gamma)
+                final_df = calk.by_MTP(gamma_df)
+                display_func = display_results_ai4kappa
+
+            # 显示结果
+            st.write("---")
+            st.subheader("Results")
+            
+            # 显示合并的数据框
+            st.write("Combined Results:")
+            st.dataframe(final_df.loc[:, display_columns(method)])
+            
+            # 显示每个文件的晶体结构信息
+            st.write("---")
+            st.subheader("Crystal Structure Information")
+            
+            for file_name in file_params.keys():
+                with st.expander(f"Structure details for {file_name}"):
+                    cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
+                    st.write(cry_content, unsafe_allow_html=True)
+                    
+                    file_results = final_df.loc[file_name:file_name]
+                    if method == "KappaP":
+                        template = display_results_kappap(file_results)
+                    else:
+                        template = display_results_ai4kappa(file_results)
+                    st.markdown(template, unsafe_allow_html=True)
+        fo.del_cif_file(root_dir_path)
+        fo.del_temp_file(sour_path)
     else:
         st.info('Please upload CIF files (maximum 5) in the sidebar first.')
 

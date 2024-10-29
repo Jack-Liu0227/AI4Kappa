@@ -89,8 +89,7 @@ def app():
                       "Bulk modulus (GPa)", "Shear modulus (GPa)", "Sound velocity of the transverse wave (m s-1)",
                       "Sound velocity of the longitude wave (m s-1)", "Speed of sound (m s-1)",
                       "Poisson ratio", "Grüneisen parameter", "Acoustic Debye Temperature (K)", "Kappa_cal (W m-1 K-1)"]
-                specify_col_index = [ls[0], ls[1], ls[2], ls[3], ls[4], ls[5], ls[6], ls[7], ls[8],  ls[10],ls[12]]
-                final_df = K_df.loc[:, specify_col_index]
+                final_df = K_df.loc[:, ls]
                 
                 # 添加检查确保 DataFrame 不为空
                 if final_df.empty:
