@@ -75,7 +75,15 @@ def app():
             try:
                 st.write("---")
                 all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
+                if all_cry_df.empty:
+                    st.error("Failed to extract crystal data from CIF files.")
+                    return
+                    
                 whole_info_df = pd.merge(all_cry_df, pre_df, left_index=True, right_index=True)
+                if whole_info_df.empty:
+                    st.error("Failed to merge crystal data with predictions.")
+                    return
+                    
                 Debye_df = calk.cal_Debye_T(whole_info_df)
                 gamma_df = calk.cal_gamma(Debye_df)
                 K_df = calk.by_MTP(gamma_df)
@@ -85,18 +93,34 @@ def app():
                       "Poisson ratio", "Grüneisen parameter", "Acoustic Debye Temperature (K)", "Kappa_cal (W m-1 K-1)"]
                 specify_col_index = [ls[0], ls[1], ls[2], ls[3], ls[4], ls[5], ls[6], ls[7], ls[8],  ls[10],ls[12]]
                 final_df = K_df.loc[:, specify_col_index]
+                
+                # 添加检查确保 DataFrame 不为空
+                if final_df.empty:
+                    st.error("No data was generated. Please check your input files.")
+                    return
+                    
                 st.dataframe(final_df)
                 st.write("---")
-                st.write(f"The file name of displaying crystalline is: {final_df.index[0]}")
+                
+                # 使用 get 方法安全地获取索引，提供默认值
+                first_index = final_df.index[0] if len(final_df.index) > 0 else "No file"
+                st.write(f"The file name of displaying crystalline is: {first_index}")
+                
                 st.write("The information of uploaded crystal structure is:")
                 st.write(cry_content, unsafe_allow_html=True)
-
                 st.write("---")
-                template = display_results(final_df)
-                st.markdown(template, unsafe_allow_html=True)
+                
+                # 只有在 DataFrame 不为空时才显示结果
+                if not final_df.empty:
+                    template = display_results(final_df)
+                    st.markdown(template, unsafe_allow_html=True)
+                st.write("---")
             except Exception as e:
-                st.write(e)
-            fo.del_cif_file(root_dir_path)
+                st.error(f"An error occurred: {str(e)}")
+                st.write("Please check your input files and try again.")
+            finally:
+                # 清理文件
+                fo.del_cif_file(root_dir_path)
     else:
         st.title('Please upload the cell CIF file')
 

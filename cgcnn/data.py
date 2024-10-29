@@ -261,15 +261,15 @@ class CIFData(Dataset):
     ├── id0.cif
     ├── id1.cif
     ├── ...
-
-    id_prop.csv: a CSV file with two columns. The first column recodes a
+    
+    id_prop.csv: CSV file that contains two columns. The first column recodes a
     unique ID for each crystal, and the second column recodes the value of
     target property.
-
-    atom_init.json: a JSON file that stores the initialization vector for each
+    
+    atom_init.json: JSON file that contains the initialization vector for each
     element.
-
-    ID.cif: a CIF file that recodes the crystal structure, where ID is the
+    
+    ID.cif: CIF file that recodes the crystal structure, where ID is the 
     unique ID for the crystal.
 
     Parameters
@@ -306,6 +306,7 @@ class CIFData(Dataset):
         assert os.path.exists(id_prop_file), 'id_prop.csv does not exist!'
         with open(id_prop_file) as f:
             reader = csv.reader(f)
+            next(reader)  # skip header
             self.id_prop_data = [row for row in reader]
         random.seed(random_seed)
         random.shuffle(self.id_prop_data)
@@ -317,13 +318,12 @@ class CIFData(Dataset):
     def __len__(self):
         return len(self.id_prop_data)
 
-    @functools.lru_cache(maxsize=None)  # Cache loaded structures
     def __getitem__(self, idx):
         cif_id, target = self.id_prop_data[idx]
         crystal = Structure.from_file(os.path.join(self.root_dir,
-                                                   cif_id+'.cif'))
+                                                 f'{cif_id}'))
         atom_fea = np.vstack([self.ari.get_atom_fea(crystal[i].specie.number)
-                              for i in range(len(crystal))])
+                             for i in range(len(crystal))])
         atom_fea = torch.Tensor(atom_fea)
         all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
         all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
@@ -331,18 +331,18 @@ class CIFData(Dataset):
         for nbr in all_nbrs:
             if len(nbr) < self.max_num_nbr:
                 warnings.warn('{} not find enough neighbors to build graph. '
-                              'If it happens frequently, consider increase '
-                              'radius.'.format(cif_id))
+                            'If it happens frequently, consider increase '
+                            'radius.'.format(cif_id))
                 nbr_fea_idx.append(list(map(lambda x: x[2], nbr)) +
-                                   [0] * (self.max_num_nbr - len(nbr)))
+                                 [0] * (self.max_num_nbr - len(nbr)))
                 nbr_fea.append(list(map(lambda x: x[1], nbr)) +
-                               [self.radius + 1.] * (self.max_num_nbr -
-                                                     len(nbr)))
+                             [self.radius + 1.] * (self.max_num_nbr -
+                                                 len(nbr)))
             else:
                 nbr_fea_idx.append(list(map(lambda x: x[2],
-                                            nbr[:self.max_num_nbr])))
+                                          nbr[:self.max_num_nbr])))
                 nbr_fea.append(list(map(lambda x: x[1],
-                                        nbr[:self.max_num_nbr])))
+                                      nbr[:self.max_num_nbr])))
         nbr_fea_idx, nbr_fea = np.array(nbr_fea_idx), np.array(nbr_fea)
         nbr_fea = self.gdf.expand(nbr_fea)
         atom_fea = torch.Tensor(atom_fea)

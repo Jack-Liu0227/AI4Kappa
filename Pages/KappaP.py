@@ -86,7 +86,15 @@ def app():
             try:
                 st.write("---")
                 all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
+                if all_cry_df.empty:
+                    st.error("Failed to extract crystal data from CIF files.")
+                    return
+                    
                 whole_info_df = pd.merge(all_cry_df, pre_df, left_index=True, right_index=True)
+                if whole_info_df.empty:
+                    st.error("Failed to merge crystal data with predictions.")
+                    return
+                    
                 Debye_df = calk.cal_Debye_T(whole_info_df)
                 gamma_df = calk.cal_gamma(Debye_df)
                 A_df=calk.cal_A(gamma_df,1)
@@ -98,19 +106,31 @@ def app():
                 specify_col_index = [ls[0], ls[1], ls[2], ls[3], ls[4], ls[5], ls[6], ls[7], ls[8], ls[9], ls[10],
                                      ls[11], ls[12]]
                 final_df = K_slack_df.loc[:, specify_col_index]
+                
+                if final_df.empty:
+                    st.error("No data was generated. Please check your input files.")
+                    return
+                    
                 st.dataframe(final_df)
                 st.write("---")
-                st.write(f"The file name of displaying crystalline is: {final_df.index[0]}")
+                
+                first_index = final_df.index[0] if len(final_df.index) > 0 else "No file"
+                st.write(f"The file name of displaying crystalline is: {first_index}")
+                
                 st.write("The information of uploaded crystal structure is:")
                 st.write(cry_content, unsafe_allow_html=True)
                 st.write("---")
-                template = display_results(final_df)
-                st.markdown(template, unsafe_allow_html=True)
+                
+                if not final_df.empty:
+                    template = display_results(final_df)
+                    st.markdown(template, unsafe_allow_html=True)
                 st.write("---")
             except Exception as e:
-                st.write(e)
-            fo.del_cif_file(root_dir_path)
-            fo.del_temp_file(sour_path)
+                st.error(f"An error occurred: {str(e)}")
+                st.write("Please check your input files and try again.")
+            finally:
+                fo.del_cif_file(root_dir_path)
+                fo.del_temp_file(sour_path)
     else:
         st.title('Please upload CIF file')
     declaration = """<p style='font-size: 22px;'>We strive to have clear documentation and examples to help everyone with using KappaP on their own. 
