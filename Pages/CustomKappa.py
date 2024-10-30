@@ -17,6 +17,8 @@ import predict
 
 import streamlit as st
 import pandas as pd
+from pymatgen.core import Structure
+import numpy as np
 
 def display_results_kappap(df):
     formula = r"$$\kappa_L=A\frac{M V^{\frac{1}{3}} \theta_a^3}{\gamma^2 T n} $$"
@@ -94,6 +96,16 @@ def app():
             st.write(f"**Parameters for {file_name}:**")
             col1, col2, col3 = st.columns(3)
             
+            # 获取当前文件的密度
+            try:
+                structure_df = fo.get_crystalline_data(Structure.from_file(os.path.join(root_dir_path, file_name)))
+                density = structure_df.get("Density (g cm-3)")
+                if density is None or not isinstance(density, (int, float)):
+                    density = 3.0  # 默认密度值
+            except Exception as e:
+                print(f"Error reading density for {file_name}: {e}")
+                density = 3.0
+            
             with col1:
                 bulk = st.number_input(
                     "Bulk modulus (GPa)",
@@ -108,13 +120,53 @@ def app():
                     value=None,
                     placeholder="Enter value..."
                 )
+            
+            # 计算默认的 Grüneisen 参数值
+            default_gruneisen = None
+            if bulk is not None and shear is not None and density is not None:
+                try:
+                    # 转换单位：GPa -> Pa (×10⁹)
+                    bulk_pa = bulk * 1e9
+                    shear_pa = shear * 1e9
+                    # 密度单位：g/cm³ -> kg/m³ (×1000)
+                    density_si = density * 1000
+                    
+                    # 计算纵波和横波速度 (m/s)
+                    Vl = ((bulk_pa + 4 * shear_pa / 3) / density_si) ** 0.5
+                    Vt = (shear_pa / density_si) ** 0.5
+                    
+                    # 计算泊松比和Grüneisen参数
+                    a = Vl / Vt
+                    poisson = (pow(a, 2) - 2) / (2 * pow(a, 2) - 2)
+                    default_gruneisen = 3 * (1 + poisson) / (2 * (2 - 3 * poisson))
+                    
+                    # 验证计算结果的合理性
+                    if not (0 < default_gruneisen < 10):  # Grüneisen参数通常在0到10之间
+                        default_gruneisen = None
+                        print(f"Calculated Grüneisen parameter out of reasonable range for {file_name}")
+                        
+                except Exception as e:
+                    print(f"Error calculating Grüneisen parameter for {file_name}: {e}")
+                    default_gruneisen = None
+            
             with col3:
+                # 获取之前的值（如果存在）
+                previous_value = st.session_state.get(f"grun_{file_name}")
+                
+                # 如果有之前的值，使用之前的值；否则使用默认计算值
+                initial_value = previous_value if previous_value is not None else default_gruneisen
+                
                 gruneisen = st.number_input(
                     "Grüneisen parameter",
                     key=f"grun_{file_name}",
-                    value=None,
+                    value=initial_value,
+                    format="%.4f" if initial_value is not None else None,
                     placeholder="Enter value..."
                 )
+                
+                # 如果用户输入了新值，更新session_state
+                if gruneisen != initial_value:
+                    st.session_state[f"grun_{file_name}"] = gruneisen
             
             params = {}
             if bulk is not None:
@@ -135,7 +187,7 @@ def app():
             all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
             whole_info_df = pd.DataFrame(index=all_cry_df.index, columns=["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", 
                               "the total atomic mass (amu)", "Bulk modulus (GPa)", 
-                              "Shear modulus (GPat", "Grüneisen parameter"])
+                              "Shear modulus (GPa)", "Grüneisen parameter"])
             
             # 复制基本属性
             for col in ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)"]:
@@ -149,21 +201,18 @@ def app():
                     for param, value in params.items():
                         whole_info_df.loc[file_name, param] = value
 
-            custom_gamma=whole_info_df["Grüneisen parameter"]
+            # 获取用户输入的Grüneisen参数
+            custom_gamma = whole_info_df["Grüneisen parameter"]
             Debye_df = calk.cal_Debye_T(whole_info_df)
 
             if method == "KappaP":
-                # 根据选择的方法进行计算
-                
-                  # 展示Debye温度计算后的数据
-                gamma_df = calk.cal_gamma(Debye_df,custom_gamma)
-
-                A_df = calk.cal_A(gamma_df, 1,custom_gamma)
-
+                # 使用用户输入的Grüneisen参数
+                gamma_df = calk.cal_gamma(Debye_df, custom_gamma)  # 传入custom_gamma
+                A_df = calk.cal_A(gamma_df, 1, custom_gamma)  # 传入custom_gamma
                 final_df = calk.cal_K_Slack(A_df)
                 display_func = display_results_kappap
             else:  # AI4Kappa
-                gamma_df = calk.cal_gamma(Debye_df,custom_gamma)
+                gamma_df = calk.cal_gamma(Debye_df, custom_gamma)  # 传入custom_gamma
                 final_df = calk.by_MTP(gamma_df)
                 display_func = display_results_ai4kappa
 
