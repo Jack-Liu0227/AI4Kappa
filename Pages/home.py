@@ -16,94 +16,14 @@ def app():
     # ---- HEADER SECTION ----
     with st.container():
         st.title("Welcome to Lattice Thermal Conductivity Calculator")
-        st.subheader("A Powerful Tool for Thermal Conductivity Prediction")
+        st.subheader("A Powerful Tool for Lattice Thermal Conductivity Prediction")
         st.write(
             """
-            This application provides two advanced methods for calculating lattice thermal conductivity:
+            Lattice thermal conductivity is a crucial property that determines heat conduction in crystalline materials. 
+            This application provides three advanced methods for calculating lattice thermal conductivity:
             - **KappaP**: Based on the Slack model
-            - **AI4Kappa**: Using machine learning approach
-            """
-        )
-
-    # ---- METHODS INTRODUCTION ----
-    with st.container():
-        st.write("---")
-        st.header("Our Methods")
-        
-        # KappaP Method
-        st.subheader("KappaP Method")
-        st.write(
-            """
-            KappaP uses the Slack model to calculate lattice thermal conductivity:
-            """
-        )
-        st.latex(r"\kappa_L = A\frac{M V^{1/3} \theta_a^3}{\gamma^2 T n}")
-        st.write(
-            """
-            - Requires crystal structure information (CIF file)
-            - Calculates or predicts properties including:
-                - Basic structural properties:
-                    - Number of atoms
-                    - Density
-                    - Volume
-                    - Total atomic mass
-                - Mechanical properties:
-                    - Bulk modulus
-                    - Shear modulus
-                    - Sound velocity of the transverse wave
-                    - Sound velocity of the longitude wave
-                    - Speed of sound
-                    - Poisson ratio
-                - Thermal properties:
-                    - Acoustic Debye temperature
-                    - Grüneisen parameter
-                    - Lattice thermal conductivity
-            """
-        )
-        
-        # AI4Kappa Method
-        st.subheader("AI4Kappa Method")
-        st.write(
-            """
-            AI4Kappa employs machine learning for lattice thermal conductivity prediction:
-            """
-        )
-        st.latex(r"\kappa_L = \frac{G v_s V^{1/3}}{N T} \cdot e^{-\gamma}")
-        st.write(
-            """
-            - Requires crystal structure input (CIF file)
-            - Calculates or predicts properties including:
-                - Basic structural properties:
-                    - Number of atoms
-                    - Density
-                    - Volume
-                    - Total atomic mass
-                - Mechanical properties:
-                    - Bulk modulus
-                    - Shear modulus
-                    - Sound velocity of the transverse wave
-                    - Sound velocity of the longitude wave
-                    - Speed of sound
-                    - Poisson ratio
-                - Thermal properties:
-                    - Acoustic Debye temperature
-                    - Grüneisen parameter
-                    - Lattice thermal conductivity
-            """
-        )
-
-        # Custom Kappa Calculator
-        st.subheader("Custom Kappa Calculator")
-        st.write(
-            """
-            A flexible tool that allows users to:
-            - Choose between KappaP and AI4Kappa methods
-            - Input custom values for:
-                - Bulk modulus
-                - Shear modulus
-                - Grüneisen parameter
-            - Calculate lattice thermal conductivity using user-defined parameters
-            - Process multiple structures (up to 5) simultaneously
+            - **MTP**: Derived from theoretical analysis in Materials Today Physics
+            - **Custom Calculator**: Allows you to input your own elastic parameters and calculate thermal conductivity using both models (up to 5 files)
             """
         )
 
@@ -111,27 +31,137 @@ def app():
     with st.container():
         st.write("---")
         st.header("How to Use")
+        
+        st.write("""
+        1. **File Upload**
+           - Upload your CIF files using the sidebar
+           - Files must be in valid CIF format
+        
+        2. **Choose Method**
+           - KappaP: Traditional Slack model approach
+           - MTP: Materials Today Physics model
+           - Custom Calculator: Combine both methods with your parameters (maximum 5 files)
+        
+        3. **Get Results**
+           - Comprehensive output including:
+             - Lattice thermal conductivity
+             - Intermediate parameters
+             - Crystal structure details
+        """)
+
+    # ---- CALCULATION METHODS ----
+    with st.container():
+        st.write("---")
+        st.header("Calculation Methods")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🔬 Physical Model (KappaP)")
+            st.write(
+                """
+                - Based on the Slack model
+                - Calculates lattice thermal conductivity using:
+                    - Crystal structure parameters
+                    - Elastic properties
+                    - Thermal properties
+                - Provides detailed intermediate results
+                - Suitable for fundamental research and materials design
+                """
+            )
+            # 显示Slack方程
+            st.latex(r"\kappa_L = A\frac{M V^{1/3} \theta_a^3}{\gamma^2 T n}")
+            
+        with col2:
+            st.subheader("🤖 MTP Model (Materials Today Physics)")
+            st.write(
+                """
+                - Based on Materials Today Physics (MTP) model
+                - Features:
+                    - Fast prediction
+                    - Physics-informed approach
+                    - Handles complex structures
+                - Derived from theoretical analysis in Materials Today Physics
+                - Ideal for rapid screening
+                """
+            )
+            # 显示MTP方程
+            st.latex(r"\kappa_L = \frac{G v_s V^{1/3}}{N T} \cdot e^{-\gamma}")
+
+ 
+
+    # ---- CUSTOM CALCULATOR ----
+    with st.container():
+        st.write("---")
+        st.header("Custom Calculator")
         st.write(
             """
-            1. Select your preferred method (KappaP or AI4Kappa)
-            2. Upload your CIF file(s)
-            3. Get comprehensive results including:
-                - Crystal structure information
-                - Mechanical properties
-                - Calculated thermal conductivity
+            Combine both KappaP and MTP methods with your own parameters:
+            - Input your experimental/calculated parameters:
+                - Bulk modulus
+                - Shear modulus
+                - Grüneisen parameter (optional)
+            - Compare results between KappaP and MTP methods
+            - Process multiple structures (up to 5 files)
+            - Explore parameter sensitivity
             
-            Note: Please ensure your CIF files are properly formatted and contain complete structural information.
+            Perfect for researchers who:
+            - Have their own measured/calculated parameters
+            - Want to compare different calculation approaches
+            - Need to process multiple structures efficiently
             """
         )
 
-    # ---- CONTACT ----
+    # ---- TECHNICAL DETAILS ----
     with st.container():
         st.write("---")
-        st.header("Contact Us")
+        st.header("Technical Details")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Calculated Properties")
+            st.write(
+                """
+                - Basic structural properties
+                    - Number of atoms
+                    - Density
+                    - Volume
+                    - Total atomic mass
+                - Mechanical properties
+                    - Transverse sound velocity
+                    - Longitude sound velocity
+                    - Speed of sound
+                    - Poisson ratio
+                - Thermal properties
+                    - Debye temperature
+                    - Grüneisen parameter
+                    - Lattice thermal conductivity
+                    
+                """
+            )
+            
+        with col2:
+            st.subheader("Supported File Formats")
+            st.write(
+                """
+                - CIF (Crystallographic Information File)
+                - Requirements:
+                    - Valid crystal structure
+                    - Complete atomic positions
+                    - Proper space group information
+                - Validation checks included
+                """
+            )
+
+    # ---- CONTACT INFO ----
+    with st.container():
+        st.write("---")
+        st.header("Contact Information")
         
         contact_info = """
         <p style='font-size: 18px;'>
-        If you have any questions or need assistance, please contact us:<br><br>
+        For questions, suggestions, or collaboration opportunities:<br><br>
         
         <b>Principal Investigator:</b><br>
         Prof. Zhibin Gao<br>

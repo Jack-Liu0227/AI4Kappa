@@ -135,38 +135,76 @@ def app():
                     Vl = ((bulk_pa + 4 * shear_pa / 3) / density_si) ** 0.5
                     Vt = (shear_pa / density_si) ** 0.5
                     
-                    # 计算泊松比和Grüneisen参数
-                    a = Vl / Vt
-                    poisson = (pow(a, 2) - 2) / (2 * pow(a, 2) - 2)
-                    default_gruneisen = 3 * (1 + poisson) / (2 * (2 - 3 * poisson))
-                    
-                    # 验证计算结果的合理性
-                    if not (0 < default_gruneisen < 10):  # Grüneisen参数通常在0到10之间
+                    # 检查除数是否为零
+                    if Vt == 0:
+                        st.warning(f"Warning for {file_name}: Cannot calculate Grüneisen parameter - Sound velocity of the transverse wave is zero")
                         default_gruneisen = None
-                        print(f"Calculated Grüneisen parameter out of reasonable range for {file_name}")
+                    else:
+                        # 计算泊松比和Grüneisen参数
+                        a = Vl / Vt
+                        poisson = (pow(a, 2) - 2) / (2 * pow(a, 2) - 2)
                         
+                        # 检查泊松比是否会导致除零
+                        if abs(2 - 3 * poisson) < 1e-10:
+                            st.warning(f"Warning for {file_name}: Cannot calculate Grüneisen parameter - Invalid Poisson ratio")
+                            default_gruneisen = None
+                        else:
+                            default_gruneisen = 3 * (1 + poisson) / (2 * (2 - 3 * poisson))
+                            
+                            # 验证计算结果的合理性
+                            if not (0 < default_gruneisen < 10):  # Grüneisen参数通常在0到10之间
+                                st.warning(f"Warning for {file_name}: Calculated Grüneisen parameter ({default_gruneisen:.4f}) is out of reasonable range (0-10)")
+                                default_gruneisen = None
+                
+                except ZeroDivisionError:
+                    st.warning(f"Warning for {file_name}: Cannot calculate Grüneisen parameter - Division by zero error")
+                    default_gruneisen = None
                 except Exception as e:
-                    print(f"Error calculating Grüneisen parameter for {file_name}: {e}")
+                    st.warning(f"Warning for {file_name}: Error calculating Grüneisen parameter - {str(e)}")
                     default_gruneisen = None
             
             with col3:
-                # 获取之前的值（如果存在）
-                previous_value = st.session_state.get(f"grun_{file_name}")
+                # 检测Bulk或Shear模量是否改变
+                current_bulk_shear = f"{bulk}_{shear}"
+                if f"prev_bulk_shear_{file_name}" not in st.session_state:
+                    st.session_state[f"prev_bulk_shear_{file_name}"] = current_bulk_shear
                 
-                # 如果有之前的值，使用之前的值；否则使用默认计算值
-                initial_value = previous_value if previous_value is not None else default_gruneisen
+                # 如果模量改变，重置用户输入的值
+                if current_bulk_shear != st.session_state[f"prev_bulk_shear_{file_name}"]:
+                    if f"user_grun_{file_name}" in st.session_state:
+                        del st.session_state[f"user_grun_{file_name}"]
                 
-                gruneisen = st.number_input(
+                # 更新前一个模量值
+                st.session_state[f"prev_bulk_shear_{file_name}"] = current_bulk_shear
+                
+                # 获取用户输入的值
+                user_input = st.text_input(
                     "Grüneisen parameter",
-                    key=f"grun_{file_name}",
-                    value=initial_value,
-                    format="%.4f" if initial_value is not None else None,
-                    placeholder="Enter value..."
+                    key=f"grun_input_{file_name}",
+                    value=st.session_state.get(f"user_grun_{file_name}", ""),
+                    placeholder="Enter value or leave empty for default"
                 )
                 
-                # 如果用户输入了新值，更新session_state
-                if gruneisen != initial_value:
-                    st.session_state[f"grun_{file_name}"] = gruneisen
+                # 处理用户输入
+                try:
+                    if user_input.strip():  # 如果用户输入了值
+                        gruneisen = float(user_input)
+                        st.session_state[f"user_grun_{file_name}"] = user_input
+                    else:  # 如果输入为空，使用默认值
+                        gruneisen = default_gruneisen
+                        if f"user_grun_{file_name}" in st.session_state:
+                            del st.session_state[f"user_grun_{file_name}"]
+                except ValueError:
+                    st.error("Please enter a valid number")
+                    gruneisen = None
+                
+                # 显示当前使用的值
+                if gruneisen is not None:
+                    st.write(f"Current value: {gruneisen:.4f}")
+                    if user_input.strip():
+                        st.write("(User defined)")
+                    else:
+                        st.write("(Default calculated)")
             
             params = {}
             if bulk is not None:
@@ -178,67 +216,113 @@ def app():
             
             if params:
                 file_params[file_name] = params
+                file_params[file_name] = params
 
         # 计算按钮
         calculate = st.button("Calculate")
         if calculate:
-
-            # 数据处理
-            all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
-            whole_info_df = pd.DataFrame(index=all_cry_df.index, columns=["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", 
-                              "the total atomic mass (amu)", "Bulk modulus (GPa)", 
-                              "Shear modulus (GPa)", "Grüneisen parameter"])
+            # 检查必要参数是否都已输入
+            missing_params = {}
+            invalid_params = {}
             
-            # 复制基本属性
-            for col in ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)"]:
-                if col in all_cry_df.columns:
-                    whole_info_df[col] = all_cry_df[col]
- 
-
-            # 应用用户自定义参数
             for file_name, params in file_params.items():
-                if file_name in whole_info_df.index:
-                    for param, value in params.items():
-                        whole_info_df.loc[file_name, param] = value
-
-            # 获取用户输入的Grüneisen参数
-            custom_gamma = whole_info_df["Grüneisen parameter"]
-            Debye_df = calk.cal_Debye_T(whole_info_df)
-
-            if method == "KappaP":
-                # 使用用户输入的Grüneisen参数
-                gamma_df = calk.cal_gamma(Debye_df, custom_gamma)  # 传入custom_gamma
-                A_df = calk.cal_A(gamma_df, 1, custom_gamma)  # 传入custom_gamma
-                final_df = calk.cal_K_Slack(A_df)
-                display_func = display_results_kappap
-            else:  # AI4Kappa
-                gamma_df = calk.cal_gamma(Debye_df, custom_gamma)  # 传入custom_gamma
-                final_df = calk.by_MTP(gamma_df)
-                display_func = display_results_ai4kappa
-
-            # 显示结果
-            st.write("---")
-            st.subheader("Results")
-            
-            # 显示合并的数据框
-            st.write("Combined Results:")
-            st.dataframe(final_df.loc[:, display_columns(method)])
-            
-            # 显示每个文件的晶体结构信息
-            st.write("---")
-            st.subheader("Crystal Structure Information")
-            
-            for file_name in file_params.keys():
-                with st.expander(f"Structure details for {file_name}"):
-                    cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
-                    st.write(cry_content, unsafe_allow_html=True)
+                missing = []
+                invalid = []
+                
+                # 检查必要参数是否存在
+                if 'Bulk modulus (GPa)' not in params:
+                    missing.append('Bulk modulus')
+                elif params['Bulk modulus (GPa)'] <= 0:
+                    invalid.append('Bulk modulus must be positive')
                     
-                    file_results = final_df.loc[file_name:file_name]
-                    if method == "KappaP":
-                        template = display_results_kappap(file_results)
-                    else:
-                        template = display_results_ai4kappa(file_results)
-                    st.markdown(template, unsafe_allow_html=True)
+                if 'Shear modulus (GPa)' not in params:
+                    missing.append('Shear modulus')
+                elif params['Shear modulus (GPa)'] <= 0:
+                    invalid.append('Shear modulus must be positive')
+                    
+                if 'Grüneisen parameter' not in params:
+                    missing.append('Grüneisen parameter')
+                elif params['Grüneisen parameter'] <= 0:
+                    invalid.append('Grüneisen parameter must be positive')
+                    
+                if missing:
+                    missing_params[file_name] = missing
+                if invalid:
+                    invalid_params[file_name] = invalid
+                
+            # 显示错误信息
+            if missing_params or invalid_params:
+                st.error("Please correct the following errors:")
+                
+                if missing_params:
+                    st.write("Missing parameters:")
+                    for file_name, params in missing_params.items():
+                        st.write(f"- {file_name}: {', '.join(params)}")
+                
+                if invalid_params:
+                    st.write("Invalid parameters:")
+                    for file_name, errors in invalid_params.items():
+                        st.write(f"- {file_name}: {', '.join(errors)}")
+                
+                return
+            
+            try:
+                # 数据处理
+                all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
+                whole_info_df = pd.DataFrame(index=all_cry_df.index, columns=["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", 
+                          "the total atomic mass (amu)", "Bulk modulus (GPa)", 
+                          "Shear modulus (GPa)", "Grüneisen parameter"])
+                
+                # 复制基本属性
+                for col in ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)"]:
+                    if col in all_cry_df.columns:
+                        whole_info_df[col] = all_cry_df[col]
+
+                # 应用用户自定义参数
+                for file_name, params in file_params.items():
+                    if file_name in whole_info_df.index:
+                        for param, value in params.items():
+                            whole_info_df.loc[file_name, param] = value
+
+                # 获取用户输入的Grüneisen参数
+                custom_gamma = whole_info_df["Grüneisen parameter"]
+                Debye_df = calk.cal_Debye_T(whole_info_df)
+
+                if method == "KappaP":
+                    # 使用用户输入的Grüneisen参数
+                    gamma_df = calk.cal_gamma(Debye_df, custom_gamma)
+                    A_df = calk.cal_A(gamma_df, 1, custom_gamma)
+                    final_df = calk.cal_K_Slack(A_df)
+                    display_func = display_results_kappap
+                else:  # AI4Kappa
+                    gamma_df = calk.cal_gamma(Debye_df, custom_gamma)
+                    final_df = calk.by_MTP(gamma_df)
+                    display_func = display_results_ai4kappa
+
+                # 显示结果
+                st.write("---")
+                st.subheader("Results")
+                
+                # 显示合并的数据框
+                st.write("Combined Results:")
+                st.dataframe(final_df.loc[:, display_columns(method)])
+                
+                # 显示每个文件的晶体结构信息
+                st.write("---")
+                st.subheader("Crystal Structure Information")
+                
+                for file_name in file_params.keys():
+                    with st.expander(f"Structure details for {file_name}"):
+                        cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
+                        st.write(cry_content, unsafe_allow_html=True)
+                        
+                        file_results = final_df.loc[file_name:file_name]
+                        template = display_func(file_results)
+                        st.markdown(template, unsafe_allow_html=True)
+                        
+            except Exception as e:
+                st.error(f"An error occurred during calculation: {str(e)}")
+                return
         fo.del_cif_file(root_dir_path)
         fo.del_temp_file(sour_path)
     else:
