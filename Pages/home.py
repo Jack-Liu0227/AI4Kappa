@@ -69,6 +69,7 @@ def app():
                 - Suitable for fundamental research and materials design
                 """
             )
+            
             # 显示Slack方程
             st.latex(r"\kappa_L = A\frac{M V^{1/3} \theta_a^3}{\gamma^2 T n}")
             
@@ -134,7 +135,7 @@ def app():
                     - Speed of sound
                     - Poisson ratio
                 - Thermal properties
-                    - Debye temperature
+                    - Acoustic Debye temperature
                     - Grüneisen parameter
                     - Lattice thermal conductivity
                     
@@ -179,7 +180,7 @@ def app():
     with st.container():
         st.write("---")
         declaration = """
-        <p style='font-size: 22px;'>
+        <p style='font-size: 18px;'>
         We strive to provide clear documentation and examples to help users effectively utilize our thermal conductivity calculation tools. 
         While we are happy to address issues in the documentation and examples, please note that extensive user support 
         and training are primarily available to our collaborators.
