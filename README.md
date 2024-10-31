@@ -7,7 +7,7 @@ The application can calculate the lattice thermal conductivity ($\kappa_L$) of m
 - **MTP**: Based on Materials Today Physics model
 - **Custom Calculator**: Combine both methods with user-defined parameters
 
-* The APP has been deployed in Streamlit platform by our team. If you want use this APP, you can access to [https://kappapredictor.streamlit.app/].
+* The APP has been deployed in Streamlit platform by our team. If you want use this APP, you can access to [https://kappap-ai.streamlit.app/].
 
 * You can also deploy the APP on your own computer and server under the guidance of Installation.
 
@@ -19,7 +19,6 @@ The following paper describes the details of the APP.
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Installation](#installation)
-  - [Installation](#installation-1)
   - [Run\_APP](#run_app)
   - [Authors](#authors)
   - [License](#license)
@@ -40,12 +39,11 @@ The following paper describes the details of the APP.
 
 ## Installation
 
-##  Installation
 
 1. Download project
 
   ```bash
-  git clone --depth=1 https://github.com/Jack-Liu0227/KappaP.git
+  git clone --depth=1 https://github.com/Jack-Liu0227/AI4Kappa.git
   cd KappaP
   ```
 2. Install prerequisites
