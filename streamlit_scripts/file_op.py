@@ -1,20 +1,13 @@
 #!/user/bin/env python3
 # -*- coding: utf-8 -*-
 import os
-import random
-import re
-import warnings
-import shutil
-import tempfile
 import io
+import glob
 import pandas as pd
-import numpy as np
 import streamlit as st
-from pymatgen.io.cif import CifParser
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.io.cif import CifWriter
-
 
 def process_and_save_uploaded_files(uploaded_files, root_dir_path):
     """
@@ -67,7 +60,6 @@ def process_and_save_uploaded_files(uploaded_files, root_dir_path):
 def is_valid_cif(file_path):
     """检查CIF文件是否有效"""
     try:
-        from pymatgen.core import Structure
         structure = Structure.from_file(file_path)
         print(f"Valid CIF file: {os.path.basename(file_path)}")
         return True
@@ -75,49 +67,21 @@ def is_valid_cif(file_path):
         print(f"Invalid CIF file {os.path.basename(file_path)}: {str(e)}")
         return False
 
-
-def parse_formula(formula):
-    pattern = re.compile(r'([A-Z][a-z]*)(\d*)')
-    matches = pattern.findall(formula)
-    elements_dic = {}
-    for match in matches:
-        element = match[0]
-        count = int(match[1]) if match[1] else 1
-        elements_dic[element] = count
-    return elements_dic
-
-def calculate_molecular_mass(formula, element_mass_dict):
-    elements = parse_formula(formula)
-    atom_mass = 0.0
-    for element, count in elements.items():
-        if element in element_mass_dict:
-            atom_mass += element_mass_dict[element] * count
-        else:
-            print(f"Error: Element '{element}' not found in the mass dictionary.")
-    return atom_mass
-
 def get_crystalline_data(structure):
     """获取晶体的数据"""
     try:
-        # 直接使用已转换的primitive结构
         data = {}
         data["Number of Atoms"] = len(structure.sites)
         data["Density (g cm-3)"] = structure.density
         data["Volume (Å3)"] = structure.volume
         data["the total atomic mass (amu)"] = sum([site.specie.atomic_mass for site in structure.sites])
         return data
-        
     except Exception as e:
         print(f"Error in get_crystalline_data: {str(e)}")
         return None
 
 def get_dir_crystalline_data(root_dir_path):
     """获取目录下所有晶体的数据（primitive结构）"""
-    import os
-    import glob
-    import pandas as pd
-    from pymatgen.core import Structure
-    
     try:
         # 获取所有cif文件
         cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
@@ -219,42 +183,22 @@ def get_crystalline_content(cif_path):
 
 def create_id_prop(root_dir_path):
     """创建id_prop.csv文件并返回cif文件路径列表"""
-    import os
-    import glob
-    import pandas as pd
-    
-    # 检查目录是否存在
-    if not os.path.exists(root_dir_path):
-        print(f"Directory not found: {root_dir_path}")
-        return [], []
-    
-    # 获取所有cif文件
-    cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
-    if not cif_path_list:
-        print(f"No CIF files found in {root_dir_path}")
-        return [], []
-    
-    # 获取文件名列表
-    cif_name_list = []
-    for cif_path in cif_path_list:
-        if os.path.exists(cif_path):
-            cif_name = os.path.basename(cif_path)
-            cif_name_list.append(cif_name)
-            print(f"Found CIF file: {cif_name}")
-        else:
-            print(f"File not found: {cif_path}")
-    
-    if not cif_name_list:
-        print("No valid CIF files found")
-        return [], []
-    
     try:
-        # 创建DataFrame
-        df = pd.DataFrame()
-        df['name'] = cif_name_list
-        df['target'] = 0
+        # 获取所有cif文件
+        cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
+        if not cif_path_list:
+            print(f"No CIF files found in {root_dir_path}")
+            return [], []
         
-        # 保存CSV文件
+        # 获取文件名列表
+        cif_name_list = [os.path.basename(path) for path in cif_path_list if os.path.exists(path)]
+        
+        if not cif_name_list:
+            print("No valid CIF files found")
+            return [], []
+        
+        # 创建DataFrame并保存
+        df = pd.DataFrame({'name': cif_name_list, 'target': 0})
         csv_path = os.path.join(root_dir_path, 'id_prop.csv')
         df.to_csv(csv_path, index=False)
         print(f"Created id_prop.csv with {len(cif_name_list)} entries")
@@ -265,80 +209,26 @@ def create_id_prop(root_dir_path):
         return [], []
 
 def del_cif_file(path):
-    file_list = os.listdir(path)
-    for file in file_list:
-        file_path=os.path.join(path,file)
-        if file.lower().endswith('.cif') or file == "id_prop.csv":
+    """删除CIF和相关临时文件"""
+    for file in os.listdir(path):
+        file_path = os.path.join(path, file)
+        if file.lower().endswith('.cif') or file == "id_prop.csv" or file == "pre-trained.pth.tar" or file == "test_results.csv":
             os.remove(file_path)
-        elif file=="pre-trained.pth.tar" or file =="test_results.csv":
-            os.remove(file_path)
-        else:
-            pass
 
 def del_temp_file(path):
-    file_list = os.listdir(path)
-    for file in file_list:
-        file_path=os.path.join(path,file)
-        # if file=="pre-trained.pth.tar" or file =="test_results.csv":
-        if file == "test_results.csv":
-            os.remove(file_path)
-        else:
-            pass
+    """删除临时文件"""
+    test_results = os.path.join(path, "test_results.csv")
+    if os.path.exists(test_results):
+        os.remove(test_results)
 
 def clean_root_dir(root_dir_path):
-    """
-    清理root_dir目录，只保留atom_init.json文件
-    """
-    import os
-    import glob
-    
+    """清理root_dir目录，只保留atom_init.json文件"""
     try:
-        # 获取目录下所有文件
-        files = glob.glob(os.path.join(root_dir_path, '*'))
-        for file_path in files:
-            # 如果不是atom_init.json文件，则删除
+        for file_path in glob.glob(os.path.join(root_dir_path, '*')):
             if os.path.basename(file_path) != 'atom_init.json':
-                try:
-                    os.remove(file_path)
-                    print(f"Removed: {file_path}")
-                except Exception as e:
-                    print(f"Error removing {file_path}: {e}")
+                os.remove(file_path)
+                print(f"Removed: {file_path}")
     except Exception as e:
         print(f"Error cleaning root_dir: {e}")
-
-def get_crystalline_content_from_structure(structure):
-    """直接从结构对象获取晶体内容"""
-    try:
-        # 获取晶格参数
-        lattice = structure.lattice
-        cell_params = {
-            '_cell_length_a': lattice.a,
-            '_cell_length_b': lattice.b,
-            '_cell_length_c': lattice.c,
-            '_cell_angle_alpha': lattice.alpha,
-            '_cell_angle_beta': lattice.beta,
-            '_cell_angle_gamma': lattice.gamma
-        }
-        
-        # 获取空间群信息
-        spacegroup_info = structure.get_space_group_info()
-        
-        content = f"""
-        <p style='font-size: 18px;'>
-        Formula: {structure.composition.formula}<br>
-        Space group: {spacegroup_info[0]} ({spacegroup_info[1]})<br>
-        _cell_length_a     {cell_params['_cell_length_a']:.8f}<br>
-        _cell_length_b     {cell_params['_cell_length_b']:.8f}<br>
-        _cell_length_c     {cell_params['_cell_length_c']:.8f}<br>
-        _cell_angle_alpha  {cell_params['_cell_angle_alpha']:.8f}<br>
-        _cell_angle_beta   {cell_params['_cell_angle_beta']:.8f}<br>
-        _cell_angle_gamma  {cell_params['_cell_angle_gamma']:.8f}<br>
-        </p>
-        """
-        return content
-        
-    except Exception as e:
-        print(f"Error getting crystalline content from structure: {str(e)}")
-        return "Error: Could not extract crystal structure information"
 
 

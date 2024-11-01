@@ -97,10 +97,10 @@ def app():
         if len(cif_name_list) > 0:
             # 获取第一个文件的晶体信息
             first_cif_name = cif_name_list[0]
-            first_structure = valid_structures[first_cif_name]
+            first_cif_path = os.path.join(root_dir_path, first_cif_name)
             
-            # 使用primitive结构获取晶体信息
-            cry_content = fo.get_crystalline_content_from_structure(first_structure)
+            # 使用get_crystalline_content获取晶体信息
+            cry_content = fo.get_crystalline_content(first_cif_path)
             
             results_csv_path = os.path.join(sour_path, "test_results.csv")
             
