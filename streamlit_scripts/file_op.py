@@ -18,22 +18,51 @@ from pymatgen.io.cif import CifWriter
 
 def process_and_save_uploaded_files(uploaded_files, root_dir_path):
     """
-    处理并保存上传的文件。
+    处理并保存上传的文件，将结构转换为primitive格式。
 
     :param uploaded_files: 上传的文件列表
     :param root_dir_path: 保存文件的根目录路径
+    :return: 字典，键为文件名，值为对应的primitive结构对象
     """
-
     # 确保目录存在
     if not os.path.exists(root_dir_path):
         os.makedirs(root_dir_path)
+    
+    # 用于存储转换后的结构
+    primitive_structures = {}
         
-    # 保存上传的文件，保持原始文件名格式
+    # 保存上传的文件，转换为primitive格式
     for uploaded_file in uploaded_files:
-        file_name = uploaded_file.name  # 直接使用原始文件名，不做转换
-        save_path = os.path.join(root_dir_path, file_name)
-        with open(save_path, "wb") as f:
-            f.write(uploaded_file.getvalue())
+        try:
+            # 首先将上传的文件内容读入内存
+            file_content = io.BytesIO(uploaded_file.getvalue())
+            
+            # 使用pymatgen解析结构
+            structure = Structure.from_file(file_content)
+            
+            # 获取primitive结构
+            analyzer = SpacegroupAnalyzer(structure)
+            primitive_structure = analyzer.get_primitive_standard_structure()
+            
+            # 保存结构对象到字典
+            file_name = uploaded_file.name
+            primitive_structures[file_name] = primitive_structure
+            
+            # 创建CIF writer并保存文件
+            writer = CifWriter(primitive_structure, symprec=0.1)
+            save_path = os.path.join(root_dir_path, file_name)
+            writer.write_file(save_path)
+            
+        except Exception as e:
+            print(f"Error processing {uploaded_file.name}: {str(e)}")
+            # 如果转换失败，保存原始文件
+            save_path = os.path.join(root_dir_path, uploaded_file.name)
+            with open(save_path, "wb") as f:
+                f.write(uploaded_file.getvalue())
+    
+    # 将结构字典保存到session state中
+    st.session_state.primitive_structures = primitive_structures
+    return primitive_structures
 
 def is_valid_cif(file_path):
     """检查CIF文件是否有效"""
@@ -70,14 +99,7 @@ def calculate_molecular_mass(formula, element_mass_dict):
 def get_crystalline_data(structure):
     """获取晶体的数据"""
     try:
-        import numpy as np
-        from pymatgen.analysis.elasticity.strain import DeformedStructureSet
-        from pymatgen.analysis.elasticity.stress import Stress
-        from pymatgen.analysis.elasticity.elastic import ElasticTensor
-        from pymatgen.analysis.elasticity import Deformation
-        
-        
-        # 获取基本属性
+        # 直接使用已转换的primitive结构
         data = {}
         data["Number of Atoms"] = len(structure.sites)
         data["Density (g cm-3)"] = structure.density
@@ -86,10 +108,11 @@ def get_crystalline_data(structure):
         return data
         
     except Exception as e:
+        print(f"Error in get_crystalline_data: {str(e)}")
         return None
 
 def get_dir_crystalline_data(root_dir_path):
-    """获取目录下所有晶体的数据"""
+    """获取目录下所有晶体的数据（primitive结构）"""
     import os
     import glob
     import pandas as pd
@@ -109,16 +132,26 @@ def get_dir_crystalline_data(root_dir_path):
         
         for cif_path in cif_path_list:
             try:
-                print(f"\nProcessing file: {os.path.basename(cif_path)}")
-                structure = Structure.from_file(cif_path)
-                data = get_crystalline_data(structure)
+                file_name = os.path.basename(cif_path)
+                print(f"\nProcessing file: {file_name}")
+                
+                # 优先从session state获取primitive结构
+                if hasattr(st.session_state, 'primitive_structures') and file_name in st.session_state.primitive_structures:
+                    primitive_structure = st.session_state.primitive_structures[file_name]
+                else:
+                    # 如果session state中没有，则重新读取并转换
+                    structure = Structure.from_file(cif_path)
+                    analyzer = SpacegroupAnalyzer(structure)
+                    primitive_structure = analyzer.get_primitive_standard_structure()
+                
+                data = get_crystalline_data(primitive_structure)
                 
                 if data is not None:
                     data_list.append(data)
-                    file_names.append(os.path.basename(cif_path))
-                    print(f"Successfully processed {os.path.basename(cif_path)}")
+                    file_names.append(file_name)
+                    print(f"Successfully processed {file_name}")
                 else:
-                    print(f"Failed to extract data from {os.path.basename(cif_path)}")
+                    print(f"Failed to extract data from {file_name}")
                     
             except Exception as e:
                 print(f"Error processing {os.path.basename(cif_path)}: {str(e)}")
@@ -142,46 +175,42 @@ def get_dir_crystalline_data(root_dir_path):
 def get_crystalline_content(cif_path):
     """获取晶体的内容"""
     try:
-        from pymatgen.core import Structure
-        import re
+        # 从文件名获取对应的primitive结构
+        file_name = os.path.basename(cif_path)
+        if hasattr(st.session_state, 'primitive_structures') and file_name in st.session_state.primitive_structures:
+            primitive_structure = st.session_state.primitive_structures[file_name]
+        else:
+            # 如果session state中没有，则重新读取并转换
+            structure = Structure.from_file(cif_path)
+            analyzer = SpacegroupAnalyzer(structure)
+            primitive_structure = analyzer.get_primitive_standard_structure()
         
-        # 读取CIF文件原始内容
-        with open(cif_path, 'r') as f:
-            cif_content = f.read()
-            
-        # 使用正则表达式提取晶胞参数
-        cell_params = {}
-        params = [
-            '_cell_length_a',
-            '_cell_length_b',
-            '_cell_length_c',
-            '_cell_angle_alpha',
-            '_cell_angle_beta',
-            '_cell_angle_gamma'
-        ]
+        # 获取晶格参数
+        lattice = primitive_structure.lattice
+        cell_params = {
+            '_cell_length_a': lattice.a,
+            '_cell_length_b': lattice.b,
+            '_cell_length_c': lattice.c,
+            '_cell_angle_alpha': lattice.alpha,
+            '_cell_angle_beta': lattice.beta,
+            '_cell_angle_gamma': lattice.gamma
+        }
         
-        for param in params:
-            match = re.search(f"{param}\s+(\d+\.?\d*)", cif_content)
-            if match:
-                cell_params[param] = float(match.group(1))
-                
-        # 使用pymatgen获取其他信息
-        structure = Structure.from_file(cif_path)
-        spacegroup_info = structure.get_space_group_info()
+        # 获取空间群信息
+        spacegroup_info = primitive_structure.get_space_group_info()
         
         content = f"""
         <p style='font-size: 18px;'>
-        Formula: {structure.composition.formula}<br>
+        Formula: {primitive_structure.composition.formula}<br>
         Space group: {spacegroup_info[0]} ({spacegroup_info[1]})<br>
-        _cell_length_a     {cell_params.get('_cell_length_a', 'N/A'):.8f}<br>
-        _cell_length_b     {cell_params.get('_cell_length_b', 'N/A'):.8f}<br>
-        _cell_length_c     {cell_params.get('_cell_length_c', 'N/A'):.8f}<br>
-        _cell_angle_alpha  {cell_params.get('_cell_angle_alpha', 'N/A'):.8f}<br>
-        _cell_angle_beta   {cell_params.get('_cell_angle_beta', 'N/A'):.8f}<br>
-        _cell_angle_gamma  {cell_params.get('_cell_angle_gamma', 'N/A'):.8f}<br>
+        _cell_length_a     {cell_params['_cell_length_a']:.8f}<br>
+        _cell_length_b     {cell_params['_cell_length_b']:.8f}<br>
+        _cell_length_c     {cell_params['_cell_length_c']:.8f}<br>
+        _cell_angle_alpha  {cell_params['_cell_angle_alpha']:.8f}<br>
+        _cell_angle_beta   {cell_params['_cell_angle_beta']:.8f}<br>
+        _cell_angle_gamma  {cell_params['_cell_angle_gamma']:.8f}<br>
         </p>
         """
-        print(f"Successfully extracted content from {os.path.basename(cif_path)}")
         return content
         
     except Exception as e:
@@ -276,5 +305,40 @@ def clean_root_dir(root_dir_path):
                     print(f"Error removing {file_path}: {e}")
     except Exception as e:
         print(f"Error cleaning root_dir: {e}")
+
+def get_crystalline_content_from_structure(structure):
+    """直接从结构对象获取晶体内容"""
+    try:
+        # 获取晶格参数
+        lattice = structure.lattice
+        cell_params = {
+            '_cell_length_a': lattice.a,
+            '_cell_length_b': lattice.b,
+            '_cell_length_c': lattice.c,
+            '_cell_angle_alpha': lattice.alpha,
+            '_cell_angle_beta': lattice.beta,
+            '_cell_angle_gamma': lattice.gamma
+        }
+        
+        # 获取空间群信息
+        spacegroup_info = structure.get_space_group_info()
+        
+        content = f"""
+        <p style='font-size: 18px;'>
+        Formula: {structure.composition.formula}<br>
+        Space group: {spacegroup_info[0]} ({spacegroup_info[1]})<br>
+        _cell_length_a     {cell_params['_cell_length_a']:.8f}<br>
+        _cell_length_b     {cell_params['_cell_length_b']:.8f}<br>
+        _cell_length_c     {cell_params['_cell_length_c']:.8f}<br>
+        _cell_angle_alpha  {cell_params['_cell_angle_alpha']:.8f}<br>
+        _cell_angle_beta   {cell_params['_cell_angle_beta']:.8f}<br>
+        _cell_angle_gamma  {cell_params['_cell_angle_gamma']:.8f}<br>
+        </p>
+        """
+        return content
+        
+    except Exception as e:
+        print(f"Error getting crystalline content from structure: {str(e)}")
+        return "Error: Could not extract crystal structure information"
 
 
