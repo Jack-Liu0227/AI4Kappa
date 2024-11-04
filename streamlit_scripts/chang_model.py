@@ -8,7 +8,7 @@ import numpy as np
 
 def copy_model(model_path, sour_path):
     """
-    复制模型文件到目标路径
+    Copy model file to target path
     """
     try:
         import shutil
@@ -24,7 +24,7 @@ def copy_model(model_path, sour_path):
 
 def clean_model(sour_path):
     """
-    删除使用过的预训练模型文件
+    Delete used pre-trained model files
     """
     try:
         import os
@@ -37,7 +37,7 @@ def clean_model(sour_path):
 
 def get_model_path(model_path):
     """
-    获取模型路径和名称列表
+    Get model paths and name lists
     """
     import os
     import glob
@@ -50,29 +50,29 @@ def get_model_path(model_path):
 
 def get_pre_dataframe(results_csv_path, model_name):
     """
-    获取预测结果数据框，并将第三列转换为10的幂次方
-    读取后删除csv文件
+    Get prediction results dataframe and convert the third column to powers of 10
+    Delete the CSV file after reading
     """
     import pandas as pd
     import numpy as np
     import os
     
     try:
-        # 读取CSV文件
+        # Read CSV file
         test_results = pd.read_csv(results_csv_path, header=None)
         test_results.columns = ["ID", "RAND", model_name]
         
-        # 将第三列转换为10的幂次方
+        # Convert third column to powers of 10
         test_results[model_name] = np.power(10, test_results[model_name])
         
-        # 选择需要的列并设置索引
+        # Select required columns and set index
         test_results_p = test_results.iloc[:, [0, 2]]
         test_results_p.set_index("ID", inplace=True)
         
         print(f"Processed data for {model_name}:")
         print(test_results_p.head())
         
-        # 删除CSV文件
+        # Delete CSV file
         try:
             if os.path.exists(results_csv_path):
                 os.remove(results_csv_path)

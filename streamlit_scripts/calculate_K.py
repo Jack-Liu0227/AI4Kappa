@@ -6,13 +6,12 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-#!/user/bin/env python3
-# -*- coding: utf-8 -*-
-import math
-from scipy.constants import h, k
-import numpy as np
+
 
 def cal_Debye_T(df):
+    """
+    Calculate Debye temperature and related parameters
+    """
     B="Bulk modulus (GPa)"
     G="Shear modulus (GPa)"
     Va = "Speed of sound (m s-1)"
@@ -32,8 +31,8 @@ def cal_Debye_T(df):
 
 def cal_gamma(df, custom_gamma=None):
     """
-    计算 Grüneisen parameter 和泊松比
-    如果提供了 custom_gamma，则直接使用该值
+    Calculate Grüneisen parameter and Poisson ratio
+    If custom_gamma is provided, use that value directly
     """
     gamma_df = df.copy()
     L = gamma_df['Sound velocity of the longitude wave (m s-1)']
@@ -42,9 +41,8 @@ def cal_gamma(df, custom_gamma=None):
     gamma_df['Poisson ratio'] = (pow(a, 2) - 2) / (2*pow(a, 2) - 2)
     
     if custom_gamma is not None:
-        # 如果提供了自定义值，直接使用
+        # If custom value is provided, use it directly
         gamma_df['Grüneisen parameter'] = custom_gamma
-        
     else:
         gamma_df['Grüneisen parameter'] = 3 * (1 + gamma_df['Poisson ratio']) / (2 * (2 - 3 * gamma_df['Poisson ratio']))
     
@@ -52,7 +50,7 @@ def cal_gamma(df, custom_gamma=None):
 
 def cal_A(df, n, custom_gamma=None):
     """
-    计算A值，可选使用自定义的 Grüneisen parameter
+    Calculate A value, optionally using custom Grüneisen parameter
     """
     gamma = "Grüneisen parameter"
     A="A"
@@ -82,32 +80,32 @@ def cal_K_Slack(df):
 
 def by_MTP(df):
     """
-    使用MTP方法计算热导率
+    Calculate thermal conductivity using MTP method
     """
     import numpy as np
     K_df = df.copy()
     
-    # 确保所有需要的列都存在
+    # Ensure all required columns exist
     required_columns = ['Grüneisen parameter', 'Shear modulus (GPa)', 
                        'Volume (Å3)', 'Number of Atoms', 'Speed of sound (m s-1)']
     for col in required_columns:
         if col not in K_df.columns:
             raise ValueError(f"Missing required column: {col}")
     
-    # 获取计算所需的值并转换为numpy数组
+    # Get required values and convert to numpy arrays
     gamma = K_df['Grüneisen parameter'].astype(float).values
-    G = K_df['Shear modulus (GPa)'].astype(float).values * 1e9  # 转换为Pa
-    V = K_df['Volume (Å3)'].astype(float).values * 1e-30  # 转换为m³
+    G = K_df['Shear modulus (GPa)'].astype(float).values * 1e9  # Convert to Pa
+    V = K_df['Volume (Å3)'].astype(float).values * 1e-30  # Convert to m³
     N = K_df['Number of Atoms'].astype(float).values
     vs = K_df['Speed of sound (m s-1)'].astype(float).values
-    T = 300  # 温度设为300K
+    T = 300  # Temperature set to 300K
     
-    # 计算热导率 (W/mK)
+    # Calculate thermal conductivity (W/mK)
     V_term = np.power(V, 1/3)
     exp_term = np.exp(-gamma)
     kappa = G * vs * V_term / (N * T) * exp_term
     
-    # 确保结果是有限值
+    # Ensure results are finite values
     kappa = np.where(np.isfinite(kappa), kappa, 0)
     K_df['Kappa_cal (W m-1 K-1)'] = kappa
     

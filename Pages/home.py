@@ -70,7 +70,7 @@ def app():
                 """
             )
             
-            # 显示Slack方程
+            # Display Slack equation
             st.latex(r"\kappa_L = A\frac{M V^{1/3} \theta_a^3}{\gamma^2 T n}")
             
         with col2:
@@ -86,7 +86,7 @@ def app():
                 - Ideal for rapid screening
                 """
             )
-            # 显示MTP方程
+            # Display MTP equation
             st.latex(r"\kappa_L = \frac{G v_s V^{1/3}}{N T} \cdot e^{-\gamma}")
 
  

@@ -4,7 +4,7 @@ import os
 import glob
 import sys
 
-# 添加父目录到系统路径
+# Add parent directory to system path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
@@ -13,7 +13,7 @@ if parent_dir not in sys.path:
 import streamlit_scripts.file_op as fo
 import streamlit_scripts.chang_model as cm
 import streamlit_scripts.calculate_K as calk
-import predict  # 现在应该可以正确导入了
+import predict  # Should import correctly now
 
 import streamlit as st
 import pandas as pd
@@ -59,7 +59,7 @@ def app():
                 predict.main(root_dir_path)
                 pre_df = cm.get_pre_dataframe(results_csv_path, model_name_list[0])
             finally:
-                cm.clean_model(sour_path)  # 清理模型文件
+                cm.clean_model(sour_path)  # Clean model files
 
             for model_path, model_name in zip(model_path_list[1:], model_name_list[1:]):
                 try:
@@ -68,7 +68,7 @@ def app():
                     pre_df1 = cm.get_pre_dataframe(results_csv_path, model_name)
                     pre_df = pd.merge(pre_df, pre_df1, left_index=True, right_index=True)
                 finally:
-                    cm.clean_model(sour_path)  # 清理模型文件
+                    cm.clean_model(sour_path)  # Clean model files
 
             try:
                 st.write("---")
@@ -91,7 +91,7 @@ def app():
                       "Poisson ratio", "Grüneisen parameter", "Acoustic Debye Temperature (K)", "Kappa_cal (W m-1 K-1)"]
                 final_df = K_df.loc[:, ls]
                 
-                # 添加检查确保 DataFrame 不为空
+                # Check to ensure DataFrame is not empty
                 if final_df.empty:
                     st.error("No data was generated. Please check your input files.")
                     return
@@ -99,7 +99,7 @@ def app():
                 st.dataframe(final_df)
                 st.write("---")
                 
-                # 使用 get 方法安全地获取索引，提供默认值
+                # Safely get index with default value
                 first_index = final_df.index[0] if len(final_df.index) > 0 else "No file"
                 st.write(f"The file name of displaying crystalline is: {first_index}")
                 
@@ -107,7 +107,7 @@ def app():
                 st.write(cry_content, unsafe_allow_html=True)
                 st.write("---")
                 
-                # 只有在 DataFrame 不为空时才显示结果
+                # Only display results if DataFrame is not empty
                 if not final_df.empty:
                     template = display_results(final_df)
                     st.markdown(template, unsafe_allow_html=True)
@@ -116,7 +116,7 @@ def app():
                 st.error(f"An error occurred: {str(e)}")
                 st.write("Please check your input files and try again.")
             finally:
-                # 清理文件
+                # Clean up files
                 fo.del_cif_file(root_dir_path)
     else:
         st.info('Please upload CIF files in the sidebar first.')

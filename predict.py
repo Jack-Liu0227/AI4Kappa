@@ -15,11 +15,11 @@ from cgcnn.data import CIFData
 from cgcnn.data import collate_pool
 from cgcnn.model import CrystalGraphConvNet
 
-# 初始化全局变量
+# Initialize global variables
 source_path = os.path.abspath(".")
 model_path = os.path.join(source_path, "pre-trained.pth.tar")
-model_args = None  # 初始化全局变量
-best_mae_error = None  # 初始化全局变量
+model_args = None  # Initialize global variable
+best_mae_error = None  # Initialize global variable
 
 parser = argparse.ArgumentParser(description='Crystal gated neural networks')
 parser.add_argument('-b', '--batch-size', default=256, type=int,
@@ -35,7 +35,7 @@ args = parser.parse_args(sys.argv[1:])
 args.cuda = not args.disable_cuda and torch.cuda.is_available()
 
 def initialize_model_args():
-    """初始化模型参数"""
+    """Initialize model parameters"""
     global model_args, best_mae_error
     
     if os.path.isfile(model_path):
@@ -45,7 +45,7 @@ def initialize_model_args():
         model_args = argparse.Namespace(**model_checkpoint['args'])
         print("=> loaded model params '{}'".format(model_path))
         
-        # 设置 best_mae_error
+        # Set best_mae_error
         best_mae_error = 1e10 if model_args.task == 'regression' else 0
         return True
     else:
@@ -55,7 +55,7 @@ def initialize_model_args():
 def main(root_dir_path):
     global args, model_args, best_mae_error
     
-    # 确保模型参数已初始化
+    # Ensure model parameters are initialized
     if not model_args:
         if not initialize_model_args():
             return

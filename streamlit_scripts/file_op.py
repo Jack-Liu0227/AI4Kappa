@@ -11,54 +11,54 @@ from pymatgen.io.cif import CifWriter
 
 def process_and_save_uploaded_files(uploaded_files, root_dir_path):
     """
-    处理并保存上传的文件，将结构转换为primitive格式。
+    Process and save uploaded files, converting structures to primitive format.
 
-    :param uploaded_files: 上传的文件列表
-    :param root_dir_path: 保存文件的根目录路径
-    :return: 字典，键为文件名，值为对应的primitive结构对象
+    :param uploaded_files: List of uploaded files
+    :param root_dir_path: Root directory path for saving files
+    :return: Dictionary with filenames as keys and primitive structure objects as values
     """
-    # 确保目录存在
+    # Ensure directory exists
     if not os.path.exists(root_dir_path):
         os.makedirs(root_dir_path)
     
-    # 用于存储转换后的结构
+    # Store converted structures
     primitive_structures = {}
         
-    # 保存上传的文件，转换为primitive格式
+    # Save uploaded files and convert to primitive format
     for uploaded_file in uploaded_files:
         try:
-            # 首先将上传的文件内容读入内存
+            # First read file content into memory
             file_content = io.BytesIO(uploaded_file.getvalue())
             
-            # 使用pymatgen解析结构
+            # Parse structure using pymatgen
             structure = Structure.from_file(file_content)
             
-            # 获取primitive结构
+            # Get primitive structure
             analyzer = SpacegroupAnalyzer(structure)
             primitive_structure = analyzer.get_primitive_standard_structure()
             
-            # 保存结构对象到字典
+            # Save structure object to dictionary
             file_name = uploaded_file.name
             primitive_structures[file_name] = primitive_structure
             
-            # 创建CIF writer并保存文件
+            # Create CIF writer and save file
             writer = CifWriter(primitive_structure, symprec=0.1)
             save_path = os.path.join(root_dir_path, file_name)
             writer.write_file(save_path)
             
         except Exception as e:
             print(f"Error processing {uploaded_file.name}: {str(e)}")
-            # 如果转换失败，保存原始文件
+            # If conversion fails, save original file
             save_path = os.path.join(root_dir_path, uploaded_file.name)
             with open(save_path, "wb") as f:
                 f.write(uploaded_file.getvalue())
     
-    # 将结构字典保存到session state中
+    # Save structure dictionary to session state
     st.session_state.primitive_structures = primitive_structures
     return primitive_structures
 
 def is_valid_cif(file_path):
-    """检查CIF文件是否有效"""
+    """Check if CIF file is valid"""
     try:
         structure = Structure.from_file(file_path)
         print(f"Valid CIF file: {os.path.basename(file_path)}")
@@ -68,7 +68,7 @@ def is_valid_cif(file_path):
         return False
 
 def get_crystalline_data(structure):
-    """获取晶体的数据"""
+    """Get crystal structure data"""
     try:
         data = {}
         data["Number of Atoms"] = len(structure.sites)
@@ -81,9 +81,9 @@ def get_crystalline_data(structure):
         return None
 
 def get_dir_crystalline_data(root_dir_path):
-    """获取目录下所有晶体的数据（primitive结构）"""
+    """Get crystal data for all structures in directory (primitive structures)"""
     try:
-        # 获取所有cif文件
+        # Get all CIF files
         cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
         if not cif_path_list:
             print(f"No CIF files found in {root_dir_path}")
@@ -99,11 +99,11 @@ def get_dir_crystalline_data(root_dir_path):
                 file_name = os.path.basename(cif_path)
                 print(f"\nProcessing file: {file_name}")
                 
-                # 优先从session state获取primitive结构
+                # First try to get primitive structure from session state
                 if hasattr(st.session_state, 'primitive_structures') and file_name in st.session_state.primitive_structures:
                     primitive_structure = st.session_state.primitive_structures[file_name]
                 else:
-                    # 如果session state中没有，则重新读取并转换
+                    # If not in session state, read and convert
                     structure = Structure.from_file(cif_path)
                     analyzer = SpacegroupAnalyzer(structure)
                     primitive_structure = analyzer.get_primitive_standard_structure()
@@ -125,7 +125,7 @@ def get_dir_crystalline_data(root_dir_path):
             print("No valid crystal data found")
             return pd.DataFrame()
             
-        # 创建DataFrame
+        # Create DataFrame
         df = pd.DataFrame(data_list)
         df.index = file_names
         print(f"\nSuccessfully created DataFrame with {len(df)} entries")
@@ -137,19 +137,19 @@ def get_dir_crystalline_data(root_dir_path):
         return pd.DataFrame()
 
 def get_crystalline_content(cif_path):
-    """获取晶体的内容"""
+    """Get crystal structure content"""
     try:
-        # 从文件名获取对应的primitive结构
+        # Get primitive structure from filename
         file_name = os.path.basename(cif_path)
         if hasattr(st.session_state, 'primitive_structures') and file_name in st.session_state.primitive_structures:
             primitive_structure = st.session_state.primitive_structures[file_name]
         else:
-            # 如果session state中没有，则重新读取并转换
+            # If not in session state, read and convert
             structure = Structure.from_file(cif_path)
             analyzer = SpacegroupAnalyzer(structure)
             primitive_structure = analyzer.get_primitive_standard_structure()
         
-        # 获取晶格参数
+        # Get lattice parameters
         lattice = primitive_structure.lattice
         cell_params = {
             '_cell_length_a': lattice.a,
@@ -160,7 +160,7 @@ def get_crystalline_content(cif_path):
             '_cell_angle_gamma': lattice.gamma
         }
         
-        # 获取空间群信息
+        # Get space group info
         spacegroup_info = primitive_structure.get_space_group_info()
         
         content = f"""
@@ -182,22 +182,22 @@ def get_crystalline_content(cif_path):
         return "Error: Could not extract crystal structure information"
 
 def create_id_prop(root_dir_path):
-    """创建id_prop.csv文件并返回cif文件路径列表"""
+    """Create id_prop.csv file and return list of CIF file paths"""
     try:
-        # 获取所有cif文件
+        # Get all CIF files
         cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
         if not cif_path_list:
             print(f"No CIF files found in {root_dir_path}")
             return [], []
         
-        # 获取文件名列表
+        # Get list of filenames
         cif_name_list = [os.path.basename(path) for path in cif_path_list if os.path.exists(path)]
         
         if not cif_name_list:
             print("No valid CIF files found")
             return [], []
         
-        # 创建DataFrame并保存
+        # Create DataFrame and save
         df = pd.DataFrame({'name': cif_name_list, 'target': 0})
         csv_path = os.path.join(root_dir_path, 'id_prop.csv')
         df.to_csv(csv_path, index=False)
@@ -209,20 +209,20 @@ def create_id_prop(root_dir_path):
         return [], []
 
 def del_cif_file(path):
-    """删除CIF和相关临时文件"""
+    """Delete CIF and related temporary files"""
     for file in os.listdir(path):
         file_path = os.path.join(path, file)
         if file.lower().endswith('.cif') or file == "id_prop.csv" or file == "pre-trained.pth.tar" or file == "test_results.csv":
             os.remove(file_path)
 
 def del_temp_file(path):
-    """删除临时文件"""
+    """Delete temporary files"""
     test_results = os.path.join(path, "test_results.csv")
     if os.path.exists(test_results):
         os.remove(test_results)
 
 def clean_root_dir(root_dir_path):
-    """清理root_dir目录，只保留atom_init.json文件"""
+    """Clean root_dir directory, keeping only atom_init.json file"""
     try:
         for file_path in glob.glob(os.path.join(root_dir_path, '*')):
             if os.path.basename(file_path) != 'atom_init.json':
@@ -230,5 +230,4 @@ def clean_root_dir(root_dir_path):
                 print(f"Removed: {file_path}")
     except Exception as e:
         print(f"Error cleaning root_dir: {e}")
-
 

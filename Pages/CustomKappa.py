@@ -4,7 +4,7 @@ import os
 import glob
 import sys
 
-# 添加父目录到系统路径
+# Add parent directory to system path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
@@ -70,7 +70,7 @@ def app():
     root_dir_path = st.session_state.root_dir_path
     model_path = os.path.join(sour_path, "model")
 
-    # 选择计算方法
+    # Select calculation method
     method = st.radio(
         "Select calculation method:",
         ["KappaP", "AI4Kappa"],
@@ -78,17 +78,17 @@ def app():
     )
 
     if st.session_state.uploaded_files:
-        # 限制文件数量
+        # Limit number of files
         cif_files = glob.glob(os.path.join(root_dir_path, '*.cif'))
         if len(cif_files) > 5:
             st.error("Maximum 5 files allowed. Please upload fewer files.")
             return
 
-        # 创建参数输入界面
+        # Create parameter input interface
         st.write("---")
         st.subheader("Custom Parameters Input")
         
-        # 使用字典存储每个文件的参数
+        # Store parameters for each file in a dictionary
         file_params = {}
         
         for cif_file in cif_files:
@@ -96,12 +96,12 @@ def app():
             st.write(f"**Parameters for {file_name}:**")
             col1, col2, col3 = st.columns(3)
             
-            # 获取当前文件的密度
+            # Get current file density
             try:
                 structure_df = fo.get_crystalline_data(Structure.from_file(os.path.join(root_dir_path, file_name)))
                 density = structure_df.get("Density (g cm-3)")
                 if density is None or not isinstance(density, (int, float)):
-                    density = 3.0  # 默认密度值
+                    density = 3.0  # Default density value
             except Exception as e:
                 print(f"Error reading density for {file_name}: {e}")
                 density = 3.0
@@ -121,38 +121,38 @@ def app():
                     placeholder="Enter value..."
                 )
             
-            # 计算默认的 Grüneisen 参数值
+            # Calculate default Grüneisen parameter value
             default_gruneisen = None
             if bulk is not None and shear is not None and density is not None:
                 try:
-                    # 转换单位：GPa -> Pa (×10⁹)
+                    # Convert units: GPa -> Pa (×10⁹)
                     bulk_pa = bulk * 1e9
                     shear_pa = shear * 1e9
-                    # 密度单位：g/cm³ -> kg/m³ (×1000)
+                    # Density units: g/cm³ -> kg/m³ (×1000)
                     density_si = density * 1000
                     
-                    # 计算纵波和横波速度 (m/s)
+                    # Calculate longitudinal and transverse wave velocities (m/s)
                     Vl = ((bulk_pa + 4 * shear_pa / 3) / density_si) ** 0.5
                     Vt = (shear_pa / density_si) ** 0.5
                     
-                    # 检查除数是否为零
+                    # Check if denominator is zero
                     if Vt == 0:
                         st.warning(f"Warning for {file_name}: Cannot calculate Grüneisen parameter - Sound velocity of the transverse wave is zero")
                         default_gruneisen = None
                     else:
-                        # 计算泊松比和Grüneisen参数
+                        # Calculate Poisson ratio and Grüneisen parameter
                         a = Vl / Vt
                         poisson = (pow(a, 2) - 2) / (2 * pow(a, 2) - 2)
                         
-                        # 检查泊松比是否会导致除零
+                        # Check if Poisson ratio would cause division by zero
                         if abs(2 - 3 * poisson) < 1e-10:
                             st.warning(f"Warning for {file_name}: Cannot calculate Grüneisen parameter - Invalid Poisson ratio")
                             default_gruneisen = None
                         else:
                             default_gruneisen = 3 * (1 + poisson) / (2 * (2 - 3 * poisson))
                             
-                            # 验证计算结果的合理性
-                            if not (0 < default_gruneisen < 10):  # Grüneisen参数通常在0到10之间
+                            # Validate calculation result
+                            if not (0 < default_gruneisen < 10):  # Grüneisen parameter typically between 0 and 10
                                 st.warning(f"Warning for {file_name}: Calculated Grüneisen parameter ({default_gruneisen:.4f}) is out of reasonable range (0-10)")
                                 default_gruneisen = None
                 
@@ -164,20 +164,20 @@ def app():
                     default_gruneisen = None
             
             with col3:
-                # 检测Bulk或Shear模量是否改变
+                # Detect if Bulk or Shear modulus changed
                 current_bulk_shear = f"{bulk}_{shear}"
                 if f"prev_bulk_shear_{file_name}" not in st.session_state:
                     st.session_state[f"prev_bulk_shear_{file_name}"] = current_bulk_shear
                 
-                # 如果模量改变，重置用户输入的值
+                # Reset user input value if modulus changed
                 if current_bulk_shear != st.session_state[f"prev_bulk_shear_{file_name}"]:
                     if f"user_grun_{file_name}" in st.session_state:
                         del st.session_state[f"user_grun_{file_name}"]
                 
-                # 更新前一个模量值
+                # Update previous modulus value
                 st.session_state[f"prev_bulk_shear_{file_name}"] = current_bulk_shear
                 
-                # 获取用户输入的值
+                # Get user input value
                 user_input = st.text_input(
                     "Grüneisen parameter",
                     key=f"grun_input_{file_name}",
@@ -185,12 +185,12 @@ def app():
                     placeholder="Enter value or leave empty for default"
                 )
                 
-                # 处理用户输入
+                # Handle user input
                 try:
-                    if user_input.strip():  # 如果用户输入了值
+                    if user_input.strip():  # If user entered a value
                         gruneisen = float(user_input)
                         st.session_state[f"user_grun_{file_name}"] = user_input
-                    else:  # 如果输入为空，使用默认值
+                    else:  # If input is empty, use default value
                         gruneisen = default_gruneisen
                         if f"user_grun_{file_name}" in st.session_state:
                             del st.session_state[f"user_grun_{file_name}"]
@@ -198,7 +198,7 @@ def app():
                     st.error("Please enter a valid number")
                     gruneisen = None
                 
-                # 显示当前使用的值
+                # Display current value
                 if gruneisen is not None:
                     st.write(f"Current value: {gruneisen:.4f}")
                     if user_input.strip():
@@ -218,10 +218,10 @@ def app():
                 file_params[file_name] = params
                 file_params[file_name] = params
 
-        # 计算按钮
+        # Calculate button
         calculate = st.button("Calculate")
         if calculate:
-            # 检查必要参数是否都已输入
+            # Check if all required parameters are input
             missing_params = {}
             invalid_params = {}
             
@@ -229,7 +229,7 @@ def app():
                 missing = []
                 invalid = []
                 
-                # 检查必要参数是否存在
+                # Check if required parameters exist
                 if 'Bulk modulus (GPa)' not in params:
                     missing.append('Bulk modulus')
                 elif params['Bulk modulus (GPa)'] <= 0:
@@ -250,7 +250,7 @@ def app():
                 if invalid:
                     invalid_params[file_name] = invalid
                 
-            # 显示错误信息
+            # Display error messages
             if missing_params or invalid_params:
                 st.error("Please correct the following errors:")
                 
@@ -267,29 +267,29 @@ def app():
                 return
             
             try:
-                # 数据处理
+                # Data processing
                 all_cry_df = fo.get_dir_crystalline_data(root_dir_path)
                 whole_info_df = pd.DataFrame(index=all_cry_df.index, columns=["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", 
                           "the total atomic mass (amu)", "Bulk modulus (GPa)", 
                           "Shear modulus (GPa)", "Grüneisen parameter"])
                 
-                # 复制基本属性
+                # Copy basic properties
                 for col in ["Number of Atoms", "Density (g cm-3)", "Volume (Å3)", "the total atomic mass (amu)"]:
                     if col in all_cry_df.columns:
                         whole_info_df[col] = all_cry_df[col]
 
-                # 应用用户自定义参数
+                # Apply user-defined parameters
                 for file_name, params in file_params.items():
                     if file_name in whole_info_df.index:
                         for param, value in params.items():
                             whole_info_df.loc[file_name, param] = value
 
-                # 获取用户输入的Grüneisen参数
+                # Get user input Grüneisen parameters
                 custom_gamma = whole_info_df["Grüneisen parameter"]
                 Debye_df = calk.cal_Debye_T(whole_info_df)
 
                 if method == "KappaP":
-                    # 使用用户输入的Grüneisen参数
+                    # Use user input Grüneisen parameters
                     gamma_df = calk.cal_gamma(Debye_df, custom_gamma)
                     A_df = calk.cal_A(gamma_df, 1, custom_gamma)
                     final_df = calk.cal_K_Slack(A_df)
@@ -299,15 +299,15 @@ def app():
                     final_df = calk.by_MTP(gamma_df)
                     display_func = display_results_ai4kappa
 
-                # 显示结果
+                # Display results
                 st.write("---")
                 st.subheader("Results")
                 
-                # 显示合并的数据框
+                # Display merged dataframe
                 st.write("Combined Results:")
                 st.dataframe(final_df.loc[:, display_columns(method)])
                 
-                # 显示每个文件的晶体结构信息
+                # Display crystal structure info for each file
                 st.write("---")
                 st.subheader("Crystal Structure Information")
                 
