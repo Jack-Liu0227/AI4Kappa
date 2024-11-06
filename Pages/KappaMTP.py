@@ -31,7 +31,7 @@ def display_results(df):
             """
     return template
 def app():
-    st.title("AI4Kappa")
+    st.title("KappaMTP")
     sour_path = os.path.abspath('.')
     root_dir_path = st.session_state.root_dir_path
     model_path = os.path.join(sour_path, "model")
@@ -122,7 +122,7 @@ def app():
         st.info('Please upload CIF files in the sidebar first.')
 
     with st.container():
-        declaration = """<p style='font-size: 22px;'>We strive to have clear documentation and examples to help everyone with using Al4Kappa on their own. 
+        declaration = """<p style='font-size: 22px;'>We strive to have clear documentation and examples to help everyone with using KappaMTP on their own. 
                         We will happily fix issues in the documentation and examples should you find any, 
                         however, we will not be able to offer extensive user support and training, except for our collaborators.</p>"""
         st.markdown(declaration, unsafe_allow_html=True)

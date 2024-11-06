@@ -4,7 +4,7 @@ This application provides comprehensive tools for calculating and predicting lat
 
 The application can calculate the lattice thermal conductivity ($\kappa_L$) of materials through uploading CIF files, offering multiple calculation methods:
 - **KappaP**: Based on the Slack model
-- **MTP**: Based on Materials Today Physics model
+- **KappaMTP**: Based on Materials Today Physics model
 - **Custom Calculator**: Combine both methods with user-defined parameters
 
 * The APP has been deployed in Streamlit platform by our team. If you want use this APP, you can access to [https://kappap-ai.streamlit.app/](https://kappap-ai.streamlit.app/).
@@ -27,7 +27,7 @@ The following paper describes the details of the APP.
 
 - Multiple calculation methods:
   - KappaP: Traditional Slack model approach
-  - MTP: Materials Today Physics model
+  - KappaMTP: Materials Today Physics model
   - Custom Calculator: User-defined parameters (up to 5 files)
 - Comprehensive output including:
   - Lattice thermal conductivity

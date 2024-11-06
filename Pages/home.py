@@ -22,7 +22,7 @@ def app():
             Lattice thermal conductivity is a crucial property that determines heat conduction in crystalline materials. 
             This application provides three advanced methods for calculating lattice thermal conductivity:
             - **KappaP**: Based on the Slack model
-            - **MTP**: Derived from theoretical analysis in Materials Today Physics
+            - **KappaMTP**: Based on an interpretable formula published in [Materials Today Physics](https://doi.org/10.1016/j.mtphys.2024.101549)
             - **Custom Calculator**: Allows you to input your own elastic parameters and calculate thermal conductivity using both models (up to 5 files)
             """
         )
@@ -82,7 +82,7 @@ def app():
                     - Fast prediction
                     - Physics-informed approach
                     - Handles complex structures
-                - Derived from theoretical analysis in Materials Today Physics
+                - Derived from theoretical analysis in [Materials Today Physics](https://doi.org/10.1016/j.mtphys.2024.101549)
                 - Ideal for rapid screening
                 """
             )
@@ -97,12 +97,12 @@ def app():
         st.header("Custom Calculator")
         st.write(
             """
-            Combine both KappaP and MTP methods with your own parameters:
+            Combine both KappaP and KappaMTP methods with your own parameters:
             - Input your experimental/calculated parameters:
                 - Bulk modulus
                 - Shear modulus
                 - Grüneisen parameter (optional)
-            - Compare results between KappaP and MTP methods
+            - Compare results between KappaP and KappaMTP methods
             - Process multiple structures (up to 5 files)
             - Explore parameter sensitivity
             
@@ -181,7 +181,7 @@ def app():
         st.write("---")
         declaration = """
         <p style='font-size: 18px;'>
-        We strive to provide clear documentation and examples to help users effectively utilize our thermal conductivity calculation tools. 
+        We strive to provide clear documentation and examples to help users effectively utilize our lattice thermal conductivity calculation tools. 
         While we are happy to address issues in the documentation and examples, please note that extensive user support 
         and training are primarily available to our collaborators.
         </p>
