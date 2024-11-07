@@ -34,8 +34,7 @@ def process_and_save_uploaded_files(uploaded_files, root_dir_path):
             structure = Structure.from_file(file_content)
             
             # Get primitive structure
-            analyzer = SpacegroupAnalyzer(structure)
-            primitive_structure = analyzer.get_primitive_standard_structure()
+            primitive_structure = structure.get_primitive_structure()
             
             # Save structure object to dictionary
             file_name = uploaded_file.name
@@ -71,7 +70,7 @@ def get_crystalline_data(structure):
     """Get crystal structure data"""
     try:
         data = {}
-        data["Number of Atoms"] = len(structure.sites)
+        data["Number of Atoms"] = structure.composition.num_atoms
         data["Density (g cm-3)"] = structure.density
         data["Volume (Å3)"] = structure.volume
         data["the total atomic mass (amu)"] = sum([site.specie.atomic_mass for site in structure.sites])
@@ -105,8 +104,7 @@ def get_dir_crystalline_data(root_dir_path):
                 else:
                     # If not in session state, read and convert
                     structure = Structure.from_file(cif_path)
-                    analyzer = SpacegroupAnalyzer(structure)
-                    primitive_structure = analyzer.get_primitive_standard_structure()
+                    primitive_structure = structure.get_primitive_structure()
                 
                 data = get_crystalline_data(primitive_structure)
                 
@@ -185,7 +183,7 @@ def create_id_prop(root_dir_path):
     """Create id_prop.csv file and return list of CIF file paths"""
     try:
         # Get all CIF files
-        cif_path_list = glob.glob(os.path.join(root_dir_path, '*.cif'))
+        cif_path_list = glob.glob(os.path.join(root_dir_path, '*.[cC][iI][fF]'))
         if not cif_path_list:
             print(f"No CIF files found in {root_dir_path}")
             return [], []
