@@ -95,7 +95,8 @@ def get_dir_crystalline_data(root_dir_path):
         
         for cif_path in cif_path_list:
             try:
-                file_name = os.path.basename(cif_path)
+                # Get filename without extension
+                file_name = os.path.splitext(os.path.basename(cif_path))[0]
                 print(f"\nProcessing file: {file_name}")
                 
                 # First try to get primitive structure from session state
@@ -110,20 +111,20 @@ def get_dir_crystalline_data(root_dir_path):
                 
                 if data is not None:
                     data_list.append(data)
-                    file_names.append(file_name)
+                    file_names.append(file_name)  # Use name without extension
                     print(f"Successfully processed {file_name}")
                 else:
                     print(f"Failed to extract data from {file_name}")
                     
             except Exception as e:
-                print(f"Error processing {os.path.basename(cif_path)}: {str(e)}")
+                print(f"Error processing {os.path.basename(cif_path)}: {e}")
                 continue
                 
         if not data_list:
             print("No valid crystal data found")
             return pd.DataFrame()
             
-        # Create DataFrame
+        # Create DataFrame with filenames without extensions
         df = pd.DataFrame(data_list)
         df.index = file_names
         print(f"\nSuccessfully created DataFrame with {len(df)} entries")

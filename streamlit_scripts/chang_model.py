@@ -62,6 +62,9 @@ def get_pre_dataframe(results_csv_path, model_name):
         test_results = pd.read_csv(results_csv_path, header=None)
         test_results.columns = ["ID", "RAND", model_name]
         
+        # Remove .cif extension from ID column
+        test_results["ID"] = test_results["ID"].apply(lambda x: os.path.splitext(x)[0])
+        
         # Convert third column to powers of 10
         test_results[model_name] = np.power(10, test_results[model_name])
         
