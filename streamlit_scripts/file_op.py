@@ -27,30 +27,40 @@ def process_and_save_uploaded_files(uploaded_files, root_dir_path):
     # Save uploaded files and convert to primitive format
     for uploaded_file in uploaded_files:
         try:
-            # First read file content into memory
-            file_content = io.BytesIO(uploaded_file.getvalue())
+            # Get file content as string
+            string_data = uploaded_file.getvalue().decode("utf-8")
+            
+            # Create a StringIO object
+            from io import StringIO
+            structure_string = StringIO(string_data)
             
             # Parse structure using pymatgen
-            structure = Structure.from_file(file_content)
+            structure = Structure.from_str(string_data, fmt="cif")
             
             # Get primitive structure
             primitive_structure = structure.get_primitive_structure()
             
             # Save structure object to dictionary
-            file_name = uploaded_file.name
+            file_name = os.path.splitext(uploaded_file.name)[0]  # Remove extension
             primitive_structures[file_name] = primitive_structure
             
             # Create CIF writer and save file
             writer = CifWriter(primitive_structure, symprec=0.1)
-            save_path = os.path.join(root_dir_path, file_name)
+            save_path = os.path.join(root_dir_path, uploaded_file.name)
             writer.write_file(save_path)
+            
+            print(f"Successfully processed {file_name}")
             
         except Exception as e:
             print(f"Error processing {uploaded_file.name}: {str(e)}")
-            # If conversion fails, save original file
-            save_path = os.path.join(root_dir_path, uploaded_file.name)
-            with open(save_path, "wb") as f:
-                f.write(uploaded_file.getvalue())
+            try:
+                # If conversion fails, try to save original file
+                save_path = os.path.join(root_dir_path, uploaded_file.name)
+                with open(save_path, "wb") as f:
+                    f.write(uploaded_file.getvalue())
+                print(f"Saved original file {uploaded_file.name}")
+            except Exception as save_error:
+                print(f"Error saving original file {uploaded_file.name}: {str(save_error)}")
     
     # Save structure dictionary to session state
     st.session_state.primitive_structures = primitive_structures
