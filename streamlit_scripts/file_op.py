@@ -105,7 +105,7 @@ def get_dir_crystalline_data(root_dir_path):
         
         for cif_path in cif_path_list:
             try:
-                # Get filename without extension
+                # 使用不带扩展名的文件名
                 file_name = os.path.splitext(os.path.basename(cif_path))[0]
                 print(f"\nProcessing file: {file_name}")
                 
@@ -121,13 +121,13 @@ def get_dir_crystalline_data(root_dir_path):
                 
                 if data is not None:
                     data_list.append(data)
-                    file_names.append(file_name)  # Use name without extension
+                    file_names.append(file_name)  # 使用不带扩展名的文件名
                     print(f"Successfully processed {file_name}")
                 else:
                     print(f"Failed to extract data from {file_name}")
                     
             except Exception as e:
-                print(f"Error processing {os.path.basename(cif_path)}: {e}")
+                print(f"Error processing {file_name}: {e}")
                 continue
                 
         if not data_list:

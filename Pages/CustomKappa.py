@@ -314,14 +314,18 @@ def app():
                 st.subheader("Crystal Structure Information")
                 
                 for file_name in file_params.keys():
-                    base_name = os.path.splitext(file_name)[0]  
+                    base_name = os.path.splitext(file_name)[0]  # 去掉扩展名
                     with st.expander(f"Structure details for {file_name}"):
                         cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
                         st.write(cry_content, unsafe_allow_html=True)
                         
-                        file_results = final_df.loc[[base_name]]  
-                        template = display_func(file_results)
-                        st.markdown(template, unsafe_allow_html=True)
+                        try:
+                            # 使用不带扩展名的文件名访问数据
+                            file_results = final_df.loc[[base_name]]
+                            template = display_func(file_results)
+                            st.markdown(template, unsafe_allow_html=True)
+                        except Exception as e:
+                            st.error(f"Error displaying results for {file_name}: {str(e)}")
                         
             except Exception as e:
                 st.error(f"An error occurred during calculation: {str(e)}")
