@@ -24,19 +24,20 @@ def display_results_kappap(df):
     formula = r"$$\kappa_L=A\frac{M V^{\frac{1}{3}} \theta_a^3}{\gamma^2 T n} $$"
     try:
         template = f"""
-                The number of atoms of the crystal structure is {df["Number of Atoms"][0]}.<br>
-                The volume of the crystal structure is {df["Volume (Å3)"][0]} Å$^3$.<br>
-                The total atomic mass of the crystal structure is {df["the total atomic mass (amu)"][0]} amu.<br>
-                The Bulk modulus of the crystal structure is {df["Bulk modulus (GPa)"][0]} GPa.<br>
-                The Shear modulus of the crystal structure is {df["Shear modulus (GPa)"][0]} GPa.<br>
-                The sound velocity of the crystal structure is {df["Speed of sound (m s-1)"][0]} m/s.<br>
-                The Acoustic Debye Temperature  of the crystal structure is {df["Acoustic Debye Temperature (K)"][0]} K.<br>
-                The Grüneisen parameter of the crystal structure is {df["Grüneisen parameter"][0]}.<br>
+                The number of atoms of the crystal structure is {df["Number of Atoms"].iloc[0]}.<br>
+                The volume of the crystal structure is {df["Volume (Å3)"].iloc[0]} Å$^3$.<br>
+                The total atomic mass of the crystal structure is {df["the total atomic mass (amu)"].iloc[0]} amu.<br>
+                The Bulk modulus of the crystal structure is {df["Bulk modulus (GPa)"].iloc[0]} GPa.<br>
+                The Shear modulus of the crystal structure is {df["Shear modulus (GPa)"].iloc[0]} GPa.<br>
+                The sound velocity of the crystal structure is {df["Speed of sound (m s-1)"].iloc[0]} m/s.<br>
+                The Acoustic Debye Temperature  of the crystal structure is {df["Acoustic Debye Temperature (K)"].iloc[0]} K.<br>
+                The Grüneisen parameter of the crystal structure is {df["Grüneisen parameter"].iloc[0]}.<br>
                 The formula of the lattice thermal conductivity is: {formula}.<br>
-                The calculated lattice thermal conductivity is {df["Kappa_Slack (W m-1 K-1)"][0]} W/(m·K).<br>
+                The calculated lattice thermal conductivity is {df["Kappa_Slack (W m-1 K-1)"].iloc[0]} W/(m·K).<br>
                 """
     except Exception as e:
-        st.write(e)
+        st.write(f"Error in display_results_kappap: {e}")
+        template = "Error displaying results"
     return template
 
 def display_results_ai4kappa(df):
@@ -280,9 +281,10 @@ def app():
 
                 # Apply user-defined parameters
                 for file_name, params in file_params.items():
-                    if file_name in whole_info_df.index:
+                    base_name = os.path.splitext(file_name)[0]  # 去掉扩展名
+                    if base_name in whole_info_df.index:
                         for param, value in params.items():
-                            whole_info_df.loc[file_name, param] = value
+                            whole_info_df.loc[base_name, param] = value
 
                 # Get user input Grüneisen parameters
                 custom_gamma = whole_info_df["Grüneisen parameter"]
@@ -312,11 +314,12 @@ def app():
                 st.subheader("Crystal Structure Information")
                 
                 for file_name in file_params.keys():
+                    base_name = os.path.splitext(file_name)[0]  
                     with st.expander(f"Structure details for {file_name}"):
                         cry_content = fo.get_crystalline_content(os.path.join(root_dir_path, file_name))
                         st.write(cry_content, unsafe_allow_html=True)
                         
-                        file_results = final_df.loc[file_name:file_name]
+                        file_results = final_df.loc[[base_name]]  
                         template = display_func(file_results)
                         st.markdown(template, unsafe_allow_html=True)
                         
