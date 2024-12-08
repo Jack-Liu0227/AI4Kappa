@@ -3,7 +3,7 @@
 import os
 import streamlit as st
 from multipage import MultiPage
-from Pages import KappaMTP, KappaP, home, CustomKappa
+from Pages import KappaP, PINK, home, CustomKappa
 import streamlit_scripts.file_op as fo
 
 st.set_page_config(page_title="Lattice Thermal Conductivity APP", page_icon=":evergreen_tree:", layout="wide")
@@ -41,7 +41,7 @@ app = MultiPage()
 # add applications
 app.add_page('Home', home.app)
 app.add_page("KappaP", KappaP.app)
-app.add_page("KappaMTP", KappaMTP.app)
+app.add_page("PINK", PINK.app)
 app.add_page("Custom Kappa", CustomKappa.app)
 
 # Run application

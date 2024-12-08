@@ -22,7 +22,7 @@ def app():
             Lattice thermal conductivity is a crucial property that determines heat conduction in crystalline materials. 
             This application provides three advanced methods for calculating lattice thermal conductivity:
             - **KappaP**: Based on the Slack model
-            - **KappaMTP**: Based on an interpretable formula published in [Materials Today Physics](https://doi.org/10.1016/j.mtphys.2024.101549)
+            - **PINK**: Based on an interpretable formula published in [Materials Today Physics](https://doi.org/10.1016/j.mtphys.2024.101549)
             - **Custom Calculator**: Allows you to input your own elastic parameters and calculate thermal conductivity using both models (up to 5 files)
             """
         )
@@ -74,10 +74,10 @@ def app():
             st.latex(r"\kappa_L = A\frac{M V^{1/3} \theta_a^3}{\gamma^2 T n}")
             
         with col2:
-            st.subheader("🤖 MTP Model (Materials Today Physics)")
+            st.subheader("🤖 PINK Model (Physics Informed Kappa)")
             st.write(
                 """
-                - Based on Materials Today Physics (MTP) model
+                - Based on Physics Informed Kappa (PINK) model
                 - Features:
                     - Fast prediction
                     - Physics-informed approach
@@ -97,12 +97,12 @@ def app():
         st.header("Custom Calculator")
         st.write(
             """
-            Combine both KappaP and KappaMTP methods with your own parameters:
+            Combine both KappaP and PINK methods with your own parameters:
             - Input your experimental/calculated parameters:
                 - Bulk modulus
                 - Shear modulus
                 - Grüneisen parameter (optional)
-            - Compare results between KappaP and KappaMTP methods
+            - Compare results between KappaP and PINK methods
             - Process multiple structures (up to 5 files)
             - Explore parameter sensitivity
             

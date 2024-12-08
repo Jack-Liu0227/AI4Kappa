@@ -74,7 +74,7 @@ def app():
     # Select calculation method
     method = st.radio(
         "Select calculation method:",
-        ["KappaP", "AI4Kappa"],
+        ["KappaP", "PINK"],
         horizontal=True
     )
 
