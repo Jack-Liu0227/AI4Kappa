@@ -31,7 +31,7 @@ def display_results(df):
             """
     return template
 def app():
-    st.title("PINK")
+    st.title("Physics-informed machine learning for lattice thermal conductivity (PINK)")
     sour_path = os.path.abspath('.')
     root_dir_path = st.session_state.root_dir_path
     model_path = os.path.join(sour_path, "model")
