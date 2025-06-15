@@ -10,9 +10,13 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 def app():
-    sour_path = os.path.abspath('.')
-    file_name = os.path.join(sour_path, "style/style.css")
-    local_css(file_name)
+    # sour_path = os.path.abspath('.')
+    # file_name = os.path.join(sour_path, "style/style.css")
+    # local_css(file_name)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_name = os.path.join(project_root, "style/style.css")
+    if os.path.exists(file_name):
+        local_css(file_name)
 
     # ---- HEADER SECTION ----
     with st.container():
@@ -161,7 +165,7 @@ def app():
         st.write("---")
         st.header("Software Certificate")
         # Define path to the certificate PDF
-        cert_path = "image/R20250315-软件证书.pdf"
+        cert_path = os.path.join(project_root, "image", "R20250315-软件证书.pdf")
         # Check if the certificate file exists
         if os.path.exists(cert_path):
             # Read PDF file and encode it in base64
