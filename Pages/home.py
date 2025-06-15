@@ -184,7 +184,7 @@ def app():
                 img_bytes = pix.tobytes("png")
                 
                 # Display the image
-                st.image(img_bytes, caption='Software Certificate', use_column_width=True)
+                st.image(img_bytes, caption='Software Certificate', width=500)
 
             except Exception as e:
                 st.error(f"Error processing PDF file: {e}")
