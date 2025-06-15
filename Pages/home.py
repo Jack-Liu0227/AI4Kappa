@@ -4,6 +4,8 @@ import os
 import streamlit as st
 from PIL import Image
 import base64
+import fitz  # PyMuPDF
+import io
 
 def local_css(file_name):
     with open(file_name) as f:
@@ -166,14 +168,26 @@ def app():
         st.header("Software Certificate")
         # Define path to the certificate PDF
         cert_path = os.path.join(project_root, "image", "R20250315-软件证书.pdf")
+        
         # Check if the certificate file exists
         if os.path.exists(cert_path):
-            # Read PDF file and encode it in base64
-            with open(cert_path, "rb") as f:
-                base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-            # Display PDF in an embed tag
-            pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf">'
-            st.markdown(pdf_display, unsafe_allow_html=True)
+            try:
+                # Open the PDF file
+                doc = fitz.open(cert_path)
+                # Select the first page
+                page = doc.load_page(0)
+                # Render page to an image (pixmap)
+                pix = page.get_pixmap()
+                doc.close()
+                
+                # Convert pixmap to bytes for st.image
+                img_bytes = pix.tobytes("png")
+                
+                # Display the image
+                st.image(img_bytes, caption='Software Certificate', use_column_width=True)
+
+            except Exception as e:
+                st.error(f"Error processing PDF file: {e}")
         else:
             # Show a warning if the file is not found
             st.warning(f"Certificate file not found at: {cert_path}")
