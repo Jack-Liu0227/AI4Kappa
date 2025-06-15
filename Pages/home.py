@@ -3,6 +3,7 @@
 import os
 import streamlit as st
 from PIL import Image
+import base64
 
 def local_css(file_name):
     with open(file_name) as f:
@@ -154,6 +155,24 @@ def app():
                 - Validation checks included
                 """
             )
+
+    # ---- SOFTWARE CERTIFICATE ----
+    with st.container():
+        st.write("---")
+        st.header("Software Certificate")
+        # Define path to the certificate PDF
+        cert_path = "image/R20250315-软件证书.pdf"
+        # Check if the certificate file exists
+        if os.path.exists(cert_path):
+            # Read PDF file and encode it in base64
+            with open(cert_path, "rb") as f:
+                base64_pdf = base64.b64encode(f.read()).decode('utf-8')
+            # Display PDF in an embed tag
+            pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf">'
+            st.markdown(pdf_display, unsafe_allow_html=True)
+        else:
+            # Show a warning if the file is not found
+            st.warning(f"Certificate file not found at: {cert_path}")
 
     # ---- CONTACT INFO ----
     with st.container():
