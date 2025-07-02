@@ -1,3 +1,6 @@
+# Copyright (c) 2024 Zhibin Gao's Group. All rights reserved.
+# Author: Zhibin Gao
+# Email: zhibin.gao@xjtu.edu.cn
 import argparse
 import os
 import shutil
